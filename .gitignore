@@ -90,3 +90,6 @@ ENV/
 
 # PDFs test files
 *.pdf
+
+# project config file
+general.cfg
