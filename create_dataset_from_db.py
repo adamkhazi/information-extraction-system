@@ -35,13 +35,15 @@ while row:
 print(len(tw_temp))
 print(len(tw_tag_temp))
 
-trainingfilename = "ner_training_data.txt"
-testfilename = "ner_test_data.txt"
+dataset_folder = "db_generated_datasets"
+training_file = "ner_training_data.txt"
+test_file = "ner_test_data.txt"
 
+save_file = dataset_folder + "/" + training_file
 try:
-    os.remove(trainingfilename)
+    os.remove(save_file)
 except OSError:
     pass
-with open (trainingfilename,'a') as proc_seqf:
+with open (save_file,'a') as proc_seqf:
     for a, am in zip(tw_temp, tw_tag_temp):
         proc_seqf.write("{}\t{}\n".format(a, am))

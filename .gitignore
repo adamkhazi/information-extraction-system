@@ -93,3 +93,12 @@ ENV/
 
 # project config file
 general.cfg
+
+#dataset folders
+db_generated_datasets/*
+!db_generated_datasets/.gitkeep
+example_datasets/*
+!example_datasets/.gitkeep
+
+#trialing stanford implementation 
+stanford-ner*
