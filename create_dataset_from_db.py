@@ -15,17 +15,16 @@ from database_connection import DatabaseConnection
 conn = DatabaseConnection().connect()
 cursor = conn.cursor()
 
-#not random
-#cursor.execute("SELECT TOP 50 cn_fname, cn_lname, cn_resume FROM tblCandidate WHERE cn_fname IS NOT NULL AND DATALENGTH(cn_fname)>2 AND cn_lname IS NOT NULL AND DATALENGTH(cn_lname)>2 AND cn_resume LIKE '%[a-z0-9]%' AND DATALENGTH(cn_resume)>10000 AND cn_res=0;")
+sql_query_ordered = "SELECT TOP 50 cn_fname, cn_lname, cn_resume FROM tblCandidate WHERE cn_fname IS NOT NULL AND DATALENGTH(cn_fname)>2 AND cn_lname IS NOT NULL AND DATALENGTH(cn_lname)>2 AND cn_resume LIKE '%[a-z0-9]%' AND DATALENGTH(cn_resume)>10000 AND cn_res=0;"
 
-#random
-cursor.execute("SELECT TOP 1000 cn_fname, cn_lname, cn_resume FROM tblCandidate WHERE cn_fname IS NOT NULL AND DATALENGTH(cn_fname)>2 AND cn_lname IS NOT NULL AND DATALENGTH(cn_lname)>2 AND cn_resume LIKE '%[a-z0-9]%' AND DATALENGTH(cn_resume)>17000 AND cn_res=0 ORDER BY NEWID();")
+sql_query_random = "SELECT TOP 100 cn_fname, cn_lname, cn_resume FROM tblCandidate WHERE cn_fname IS NOT NULL AND DATALENGTH(cn_fname)>2 AND cn_lname IS NOT NULL AND DATALENGTH(cn_lname)>2 AND cn_resume LIKE '%[a-z0-9]%' AND DATALENGTH(cn_resume)>17000 AND cn_res=0 ORDER BY NEWID();"
+
+cursor.execute(sql_query_random)
 
 row = cursor.fetchone()
 
 tw_temp = []
 tw_tag_temp = []
-pers_tag_count = 0
 
 while row:
     rtokenizer = RegexpTokenizer(r'\w+')
@@ -38,7 +37,6 @@ while row:
         names = rtokenizer.tokenize((str(row[0]) + " " + str(row[1])).lower())
         
         if any(n.lower() == s for s in names):
-            pers_tag_count +=1
             tw_tag_temp.append("PERS")
         else: 
             tw_tag_temp.append("O")
@@ -47,15 +45,14 @@ while row:
     
 print("tokens: " + str(len(tw_temp)))
 print("tags: " + str(len(tw_tag_temp)))
-print("PERS tag count: " + str(pers_tag_count))
+print("PERS tag count: " + str(len(tw_tag_temp)))
 
 tw_pos_temp = nltk.pos_tag(tw_temp)
 
 dataset_folder = "db_generated_datasets"
-training_file = "ner_training_data.txt"
-test_file = "ner_test_data.txt"
+ner_file = "ner_dataset.txt"
 
-save_file = dataset_folder + "/" + training_file
+save_file = dataset_folder + "/" + ner_file
 try:
     os.remove(save_file)
 except OSError:
@@ -64,4 +61,4 @@ with io.open (save_file,'a', encoding='utf-8') as proc_seqf:
     for a, pos, am in zip(tw_temp, tw_pos_temp, tw_tag_temp):
         proc_seqf.write("{}\t{}\t{}\n".format(a ,pos[1], am))
 
-print("saved: " + save_file)
+print("saved to: " + save_file)
