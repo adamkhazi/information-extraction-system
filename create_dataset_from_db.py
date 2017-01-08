@@ -3,6 +3,7 @@ import nltk
 import numpy
 import os
 import io
+import sys, time
 
 from nltk.tokenize import word_tokenize
 from numpy import array
@@ -17,7 +18,7 @@ cursor = conn.cursor()
 
 sql_query_ordered = "SELECT TOP 50 cn_fname, cn_lname, cn_resume FROM tblCandidate WHERE cn_fname IS NOT NULL AND DATALENGTH(cn_fname)>2 AND cn_lname IS NOT NULL AND DATALENGTH(cn_lname)>2 AND cn_resume LIKE '%[a-z0-9]%' AND DATALENGTH(cn_resume)>10000 AND cn_res=0;"
 
-sql_query_random = "SELECT TOP 1000 cn_fname, cn_lname, cn_resume FROM tblCandidate WHERE cn_fname IS NOT NULL AND DATALENGTH(cn_fname)>2 AND cn_lname IS NOT NULL AND DATALENGTH(cn_lname)>2 AND cn_resume LIKE '%[a-z0-9]%' AND DATALENGTH(cn_resume)>17000 AND cn_res=0 ORDER BY NEWID();"
+sql_query_random = "SELECT TOP 3000 cn_fname, cn_lname, cn_resume FROM tblCandidate WHERE cn_fname IS NOT NULL AND DATALENGTH(cn_fname)>2 AND cn_lname IS NOT NULL AND DATALENGTH(cn_lname)>2 AND cn_resume LIKE '%[a-z0-9]%' AND DATALENGTH(cn_resume)>17000 AND cn_res=0 ORDER BY NEWID();"
 
 cursor.execute(sql_query_random)
 
@@ -34,7 +35,7 @@ while row:
     temp_doc_tokens = word_tokenize(" ".join(filtered_words))
     temp_pos_tags = nltk.pos_tag(temp_doc_tokens)
     
-    print("Tagging document: " + str(row[0]) + " _ " + str(row[1]))
+    print('\rTagging document nr: ' + str(len(tagged_tokens)), end='')
 
     for idx, n in enumerate(temp_doc_tokens):
         names = rtokenizer.tokenize((str(row[0]) + " " + str(row[1])).lower())
