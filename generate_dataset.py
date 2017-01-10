@@ -10,6 +10,8 @@ from numpy import array
 from ast import literal_eval
 from nltk.tokenize import RegexpTokenizer
 from nltk.corpus import stopwords
+from nltk.tag import StanfordNERTagger
+from nltk.internals import find_jars_within_path
 
 from db_connection import DbConnection
 
@@ -65,8 +67,7 @@ class GenerateDataset:
 
         self.raw_db_table = []
         print("Pulling " + str(doc_nr) + " records")
-        for row in self.__db_cursor:
-            self.raw_db_table.append(row)
+        self.raw_db_table = self.__db_cursor.fetchall()
         print("Pulled " + str(len(self.raw_db_table)) + " records")
 
     def tokenize_text(self):
@@ -107,6 +108,22 @@ class GenerateDataset:
             self.ner_doc_tokens.append(single_ner_doc)
         print("NER tagged tokens")
 
+    def nonlocal_ner_tag_tokens(self):
+        self.nonlocal_ner_doc_tokens = []
+
+        os.environ['STANFORDTOOLSDIR'] = '/Users/adam/'
+        os.environ['CLASSPATH'] = '/Users/adam/stanford-ner-2015-12-09/stanford-ner.jar'
+        os.environ['STANFORD_MODELS'] = '/Users/adam/stanford-ner-2015-12-09/classifiers'
+
+        st = StanfordNERTagger("english.all.3class.distsim.crf.ser.gz")
+
+        for doc_idx, doc in enumerate(self.tokenized_text):
+            single_tagged_doc = st.tag(doc)
+            self.nonlocal_ner_doc_tokens.append(single_tagged_doc)
+
+        print(self.nonlocal_ner_doc_tokens)
+		
+
     def save_tagged_tokens(self):
         path = self.__dataset_folder + "/" + self.__dataset_name
         try:
@@ -117,7 +134,7 @@ class GenerateDataset:
             for doc_idx, doc in enumerate(self.ner_doc_tokens):
                 for token_idx, token in enumerate(doc):
                     # token, pos_tag, ner_tag
-                    proc_seqf.write("{}\t{}\t{}\n".format(token[0], self.pos_doc_tokens[doc_idx][token_idx][1], token[1]))
+                    proc_seqf.write("{}\t{}\t{}\t{}\n".format(token[0], self.pos_doc_tokens[doc_idx][token_idx][1], self.nonlocal_ner_tag_tokens[doc_idx][token_idx][1], token[1]))
                 proc_seqf.write("\n")
 
         print("Saved tagged tokens to: " + path)

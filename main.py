@@ -8,6 +8,7 @@ def main():
     gd.tokenize_text()
     gd.pos_tag_tokens()
     gd.ner_tag_tokens()
+    gd.nonlocal_ner_tag_tokens()
     gd.save_tagged_tokens()
 
 if __name__ == '__main__':

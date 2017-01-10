@@ -1,3 +1,4 @@
+import pymssql
 import unittest
 import configparser
 
@@ -28,3 +29,5 @@ class DbConnectionTestsi(unittest.TestCase):
 
         # if connect() function call raises exception unit test fails
         cursor = db_con.connect()
+        # is right instance and not null
+        self.assertIsInstance(cursor, pymssql.Cursor)
