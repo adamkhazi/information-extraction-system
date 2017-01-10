@@ -38,6 +38,9 @@ print("done reading and splitting dataset")
 #print(train_sents)
 #print(test_sents)
 
+def first_letter_upper(token):
+    return token[0].isupper()
+
 def word2features(sent, i):
     word = sent[i][0]
     postag = sent[i][1]
@@ -49,6 +52,7 @@ def word2features(sent, i):
         'word.isupper=%s' % word.isupper(),
         'word.istitle=%s' % word.istitle(),
         'word.isdigit=%s' % word.isdigit(),
+        'word.firstletterupper=%s' % first_letter_upper(word),
         'postag=' + postag,
         'postag[:2]=' + postag[:2],
     ]
@@ -60,6 +64,7 @@ def word2features(sent, i):
             '-1:word.lower=' + word1.lower(),
             '-1:word.istitle=%s' % word1.istitle(),
             '-1:word.isupper=%s' % word1.isupper(),
+            '-1word.firstletterupper=%s' % first_letter_upper(word1),
             '-1:postag=' + postag1,
             '-1:postag[:2]=' + postag1[:2],
         ])
@@ -73,6 +78,7 @@ def word2features(sent, i):
             '+1:word.lower=' + word1.lower(),
             '+1:word.istitle=%s' % word1.istitle(),
             '+1:word.isupper=%s' % word1.isupper(),
+            '+1word.firstletterupper=%s' % first_letter_upper(word1),
             '+1:postag=' + postag1,
             '+1:postag[:2]=' + postag1[:2],
         ])
