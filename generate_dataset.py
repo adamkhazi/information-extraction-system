@@ -111,9 +111,9 @@ class GenerateDataset:
     def nonlocal_ner_tag_tokens(self):
         self.nonlocal_ner_doc_tokens = []
 
-        os.environ['STANFORDTOOLSDIR'] = '/Users/adam/'
-        os.environ['CLASSPATH'] = '/Users/adam/stanford-ner-2015-12-09/stanford-ner.jar'
-        os.environ['STANFORD_MODELS'] = '/Users/adam/stanford-ner-2015-12-09/classifiers'
+        os.environ['STANFORDTOOLSDIR'] = '/home/adam'
+        os.environ['CLASSPATH'] = '/home/adam/stanford-ner-2015-12-09/stanford-ner.jar'
+        os.environ['STANFORD_MODELS'] = '/home/adam/stanford-ner-2015-12-09/classifiers'
 
         st = StanfordNERTagger("english.all.3class.distsim.crf.ser.gz")
 
@@ -134,7 +134,8 @@ class GenerateDataset:
             for doc_idx, doc in enumerate(self.ner_doc_tokens):
                 for token_idx, token in enumerate(doc):
                     # token, pos_tag, ner_tag
-                    proc_seqf.write("{}\t{}\t{}\t{}\n".format(token[0], self.pos_doc_tokens[doc_idx][token_idx][1], self.nonlocal_ner_tag_tokens[doc_idx][token_idx][1], token[1]))
+                    proc_seqf.write("{}\t{}\t{}\t{}\n".format(token[0],
+                        self.pos_doc_tokens[doc_idx][token_idx][1], self.nonlocal_ner_doc_tokens[doc_idx][token_idx][1], token[1]))
                 proc_seqf.write("\n")
 
         print("Saved tagged tokens to: " + path)
