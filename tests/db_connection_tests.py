@@ -27,4 +27,4 @@ class DbConnectionTestsi(unittest.TestCase):
         db_con = DbConnection()
 
         # if connect() function call raises exception unit test fails
-        conn = db_con.connect()
+        cursor = db_con.connect()

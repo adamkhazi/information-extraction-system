@@ -13,61 +13,103 @@ from nltk.corpus import stopwords
 
 from db_connection import DbConnection
 
-conn = DbConnection().connect()
-cursor = conn.cursor()
+class GenerateDataset:
+    __dataset_folder = "db_generated_datasets"
+    __dataset_name = "ner_dataset.txt"
 
-sql_query_ordered = "SELECT TOP 50 cn_fname, cn_lname, cn_resume FROM tblCandidate WHERE cn_fname IS NOT NULL AND DATALENGTH(cn_fname)>2 AND cn_lname IS NOT NULL AND DATALENGTH(cn_lname)>2 AND cn_resume LIKE '%[a-z0-9]%' AND DATALENGTH(cn_resume)>10000 AND cn_res=0;"
+    def __concatenate_sql_queries_and_select(self, doc_nr, query_nr):
+        # nr 2 is ordered randomly
+        self.sql_query_list = [
+            ("select TOP " + str(doc_nr) + " cn_fname, cn_lname, cn_resume "
+           "from tblCandidate "
+           "where cn_fname IS NOT NULL "
+           "AND DATALENGTH(cn_fname)>2 "
+           "AND cn_lname IS NOT NULL "
+           "AND DATALENGTH(cn_lname)>2 " 
+           "AND cn_resume LIKE '%[a-z0-9]%' "
+           "AND DATALENGTH(cn_resume)>10000 "
+           "AND cn_res=0;"),
+            ("SELECT TOP " + str(doc_nr) + " cn_fname, cn_lname, cn_resume "
+            "FROM tblCandidate "
+            "WHERE cn_fname IS NOT NULL "
+            "AND DATALENGTH(cn_fname)>2 "
+            "AND cn_lname IS NOT NULL "
+            "AND DATALENGTH(cn_lname)>2 "
+            "AND cn_resume LIKE '%[a-z0-9]%' "
+            "AND DATALENGTH(cn_resume)>17000 "
+            "AND cn_res=0 ORDER BY NEWID();")
+        ]
+        return self.sql_query_list[query_nr]
 
-sql_query_random = "SELECT TOP 3000 cn_fname, cn_lname, cn_resume FROM tblCandidate WHERE cn_fname IS NOT NULL AND DATALENGTH(cn_fname)>2 AND cn_lname IS NOT NULL AND DATALENGTH(cn_lname)>2 AND cn_resume LIKE '%[a-z0-9]%' AND DATALENGTH(cn_resume)>17000 AND cn_res=0 ORDER BY NEWID();"
+    def __get_db_cursor(self):
+        self.__db_cursor = DbConnection().connect()
 
-cursor.execute(sql_query_random)
+    def __set_sql_query(self, query):
+        self.__query_to_execute = query
 
-row = cursor.fetchone()
+    def __execute_query(self):
+        self.__db_cursor.execute(self.__query_to_execute)
 
-tagged_tokens = []
-pers_count = 0
+    def pull_db_records(self, query_nr, doc_nr):
+        self.__get_db_cursor()
+        self.__set_sql_query(self.__concatenate_sql_queries_and_select(doc_nr, query_nr))
+        self.__execute_query()
 
-while row:
-    rtokenizer = RegexpTokenizer(r'\w+')
-    tokens = rtokenizer.tokenize(row[2])
-    filtered_words = [w for w in tokens if not w in stopwords.words('english')]
+        self.raw_db_table = []
+        print("Pulling " + str(doc_nr) + " records")
+        for row in self.__db_cursor:
+            self.raw_db_table.append(row)
+        print("Pulled " + str(len(self.raw_db_table)) + " records")
 
-    temp_doc_tokens = word_tokenize(" ".join(filtered_words))
-    temp_pos_tags = nltk.pos_tag(temp_doc_tokens)
+    def tokenize_text(self):
+        self.tokenized_text = []
+        for doc in self.raw_db_table:
+            #rtokenizer = RegexpTokenizer(r'\w+')
+            #tokens = rtokenizer.tokenize(doc[2])
+            tokens = word_tokenize(doc[2])
+            #optional remove stop words
+            #filtered_words = [w for w in tokens if not w in stopwords.words('english')]
+            self.tokenized_text.append(tokens)
+        print("Tokenized text")
     
-    print('\rTagging document nr: ' + str(len(tagged_tokens)), end='')
+    def pos_tag_tokens(self):
+        self.pos_doc_tokens = []
+        for doc in self.tokenized_text:
+            tagged_tokens = nltk.pos_tag(doc)
+            self.pos_doc_tokens.append(tagged_tokens)
+        print("POS tagged tokens")
+            
+    def ner_tag_tokens(self):
+        self.ner_doc_tokens = []
+        pers_count = 0
 
-    for idx, n in enumerate(temp_doc_tokens):
-        names = rtokenizer.tokenize((str(row[0]) + " " + str(row[1])).lower())
-        
-        if any(n.lower() == s for s in names):
-            #replace word with tagged tuple
-            temp_doc_tokens[idx] = (temp_doc_tokens[idx], temp_pos_tags[idx][1], "PERS")
-            pers_count += 1
-        else: 
-            temp_doc_tokens[idx] = (temp_doc_tokens[idx], temp_pos_tags[idx][1], "O")
+        for doc_idx, doc in enumerate(self.tokenized_text):
+            single_ner_doc = []
+            for token_idx, token in enumerate(doc):
+                rtokenizer = RegexpTokenizer(r'\w+')
+                matching_names = rtokenizer.tokenize((str(self.raw_db_table[doc_idx][0]) + " " + str(self.raw_db_table[doc_idx][1])).lower())
+                
+                if any(token.lower() == s for s in matching_names):
+                    #replace word with tagged tuple
+                    single_ner_doc.append((token, "PERS"))
+                    pers_count += 1
+                else: 
+                    single_ner_doc.append((token, "O"))
 
-    row = cursor.fetchone()
-    # each list within tagged_tokens is a document
-    tagged_tokens.append(temp_doc_tokens)
-    
-print("documents: " + str(len(tagged_tokens)))
-print("tokens: " + str(sum([len(doc) for doc in tagged_tokens])))
-# TODO PERS COUNT
-#print("PERS count: " + str(sum(a in doc for doc in tagged_tokens)))
+            self.ner_doc_tokens.append(single_ner_doc)
+        print("NER tagged tokens")
 
-dataset_folder = "db_generated_datasets"
-ner_file = "ner_dataset.txt"
+    def save_tagged_tokens(self):
+        path = self.__dataset_folder + "/" + self.__dataset_name
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+        with io.open (path,'a', encoding='utf-8') as proc_seqf:
+            for doc_idx, doc in enumerate(self.ner_doc_tokens):
+                for token_idx, token in enumerate(doc):
+                    # token, pos_tag, ner_tag
+                    proc_seqf.write("{}\t{}\t{}\n".format(token[0], self.pos_doc_tokens[doc_idx][token_idx][1], token[1]))
+                proc_seqf.write("\n")
 
-save_file = dataset_folder + "/" + ner_file
-try:
-    os.remove(save_file)
-except OSError:
-    pass
-with io.open (save_file,'a', encoding='utf-8') as proc_seqf:
-    for idx, item in enumerate(tagged_tokens):
-        for token in enumerate(tagged_tokens[idx]):
-            proc_seqf.write("{}\t{}\t{}\n".format(token[1][0], token[1][1], token[1][2]))
-        proc_seqf.write("\n")
-
-print("saved to: " + save_file)
+        print("Saved tagged tokens to: " + path)

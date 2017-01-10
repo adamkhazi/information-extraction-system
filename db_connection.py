@@ -18,5 +18,5 @@ class DbConnection:
     def connect(self):
         self.read_config()
         self.make_connection()
-        return self.__connection
-
+        self.__cursor = self.__connection.cursor()
+        return self.__cursor
