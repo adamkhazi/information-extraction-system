@@ -105,3 +105,6 @@ stanford-ner*
 
 # crfsuite models
 *.crfsuite
+
+# playground for expirimentation
+playground/*
