@@ -102,3 +102,6 @@ example_datasets/*
 
 #trialing stanford implementation 
 stanford-ner*
+
+# crfsuite models
+*.crfsuite
