@@ -20,24 +20,32 @@ class GenerateDataset:
     def __concatenate_sql_queries_and_select(self, doc_nr, query_nr):
         # nr 2 is ordered randomly
         self.sql_query_list = [
-            ("select TOP " + str(doc_nr) + " cn_fname, cn_lname, cn_resume "
+            ("select TOP " + str(doc_nr) + " cn_fname, cn_lname, cn_resume " # is cn_res not random
            "from tblCandidate "
            "where cn_fname IS NOT NULL "
            "AND DATALENGTH(cn_fname)>2 "
            "AND cn_lname IS NOT NULL "
            "AND DATALENGTH(cn_lname)>2 " 
            "AND cn_resume LIKE '%[a-z0-9]%' "
-           "AND DATALENGTH(cn_resume)>10000 "
+           "AND DATALENGTH(cn_resume)>14000 "
            "AND cn_res=0;"),
-            ("SELECT TOP " + str(doc_nr) + " cn_fname, cn_lname, cn_resume "
-            "FROM tblCandidate "
-            "WHERE cn_fname IS NOT NULL "
-            "AND DATALENGTH(cn_fname)>2 "
-            "AND cn_lname IS NOT NULL "
-            "AND DATALENGTH(cn_lname)>2 "
-            "AND cn_resume LIKE '%[a-z0-9]%' "
-            "AND DATALENGTH(cn_resume)>17000 "
-            "AND cn_res=0 ORDER BY NEWID();")
+            ("SELECT TOP " + str(doc_nr) + " cn_fname, cn_lname, cn_resume " # is random
+           "FROM tblCandidate "
+           "WHERE cn_fname IS NOT NULL "
+           "AND DATALENGTH(cn_fname)>2 "
+           "AND cn_lname IS NOT NULL "
+           "AND DATALENGTH(cn_lname)>2 "
+           "AND cn_resume LIKE '%[a-z0-9]%' "
+           "AND DATALENGTH(cn_resume)>17000 "
+           "AND cn_res=0 ORDER BY NEWID();"),
+            ("select TOP " + str(doc_nr) + " cn_fname, cn_lname, cn_resume " # not cn_res & not random
+           "FROM tblCandidate "
+           "WHERE cn_fname IS NOT NULL "
+           "AND DATALENGTH(cn_fname)>2 "
+           "AND cn_lname IS NOT NULL "
+           "AND DATALENGTH(cn_lname)>2 "
+           "AND cn_resume LIKE '%[a-z0-9]%' "
+           "AND DATALENGTH(cn_resume)>17000;")
         ]
         return self.sql_query_list[query_nr]
 
