@@ -109,17 +109,23 @@ class GenerateDataset:
         print("NER tagged tokens")
 
     def nonlocal_ner_tag_tokens(self):
-        self.nonlocal_ner_doc_tokens = []
+        #nltk.internals.config_java(options='-Xmx4192m')
 
-        os.environ['STANFORDTOOLSDIR'] = '/home/adam'
-        os.environ['CLASSPATH'] = '/home/adam/stanford-ner-2015-12-09/stanford-ner.jar'
-        os.environ['STANFORD_MODELS'] = '/home/adam/stanford-ner-2015-12-09/classifiers'
+        from os.path import expanduser
+        home = expanduser("~")
 
-        st = StanfordNERTagger("english.all.3class.distsim.crf.ser.gz")
+        os.environ['CLASSPATH'] = home + '/stanford-ner-2015-12-09'
+        os.environ['STANFORD_MODELS'] = home + '/stanford-ner-2015-12-09/classifiers'
 
-        for doc_idx, doc in enumerate(self.tokenized_text):
-            single_tagged_doc = st.tag(doc)
-            self.nonlocal_ner_doc_tokens.append(single_tagged_doc)
+        st = StanfordNERTagger("english.all.3class.distsim.crf.ser.gz", java_options='-mx4000m')
+        
+        stanford_dir = st._stanford_jar[0].rpartition('/')[0]
+        from nltk.internals import find_jars_within_path
+        stanford_jars = find_jars_within_path(stanford_dir)
+
+        st._stanford_jar = ':'.join(stanford_jars)
+
+        self.nonlocal_ner_doc_tokens = st.tag_sents(self.tokenized_text)
 
         print(self.nonlocal_ner_doc_tokens)
 		
