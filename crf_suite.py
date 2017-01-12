@@ -8,32 +8,25 @@ import csv
 import math
 import io
 
-from generate_database import GenerateDataset
+from generate_dataset import GenerateDataset
 
 class CrfSuite:
 
-    train_sents = []
-    test_sents = []
-
-    total_sents = []
-
-    
     def get_dataset(self):
         gd = GenerateDataset()
-        total_sents = gd.read_tagged_tokens()
-        print("Read " + str(len(total_sents)) + " documents")
+        self.total_sents = gd.read_tagged_tokens()
+        print("Read " + str(len(self.total_sents)) + " documents")
 
     def split_dataset(self):
-        split_point = math.ceil(len(total_sents) * 0.7)
-        train_sents = total_sents[0:split_point]
-        test_sents = total_sents[split_point+1:]
+        split_point = math.ceil(len(self.total_sents) * 0.7)
+        self.train_sents = self.total_sents[0:split_point]
+        self.test_sents = self.total_sents[split_point+1:]
         print("Split dataset")
 
-
-    def first_letter_upper(token):
+    def first_letter_upper(self, token):
         return token[0].isupper()
 
-    def word2features(sent, i):
+    def word2features(self, sent, i):
         word = sent[i][0]
         postag = sent[i][1]
         nonlocalnertag = sent[i][2]
@@ -45,7 +38,7 @@ class CrfSuite:
             'word.isupper=%s' % word.isupper(),
             'word.istitle=%s' % word.istitle(),
             'word.isdigit=%s' % word.isdigit(),
-            'word.firstletterupper=%s' % first_letter_upper(word),
+            'word.firstletterupper=%s' % self.first_letter_upper(word),
             'word.idx=' + str(i),
             'postag=' + postag,
             'postag[:2]=' + postag[:2],
@@ -60,7 +53,7 @@ class CrfSuite:
                 '-1:word.lower=' + word1.lower(),
                 '-1:word.istitle=%s' % word1.istitle(),
                 '-1:word.isupper=%s' % word1.isupper(),
-                '-1word.firstletterupper=%s' % first_letter_upper(word1),
+                '-1word.firstletterupper=%s' % self.first_letter_upper(word1),
                 '-1word.idx=' + str(i-1),
                 '-1:postag=' + postag1,
                 '-1:postag[:2]=' + postag1[:2],
@@ -77,7 +70,7 @@ class CrfSuite:
                 '+1:word.lower=' + word1.lower(),
                 '+1:word.istitle=%s' % word1.istitle(),
                 '+1:word.isupper=%s' % word1.isupper(),
-                '+1word.firstletterupper=%s' % first_letter_upper(word1),
+                '+1word.firstletterupper=%s' % self.first_letter_upper(word1),
                 '+1word.idx=' + str(i+1),
                 '+1:postag=' + postag1,
                 '+1:postag[:2]=' + postag1[:2],
@@ -89,28 +82,43 @@ class CrfSuite:
 
         return features
 
-    def sent2features(sent):
-        return [word2features(sent, i) for i in range(len(sent))]
+    def sent2features(self, sent):
+        return [self.word2features(sent, i) for i in range(len(sent))]
 
-    def sent2labels(sent):
+    def sent2labels(self, sent):
         return [label for token, postag, nonlocalnertag, label in sent]
 
-    def sent2tokens(sent):
+    def sent2tokens(self, sent):
         return [token for token, postag, nonlocalnertag, label in sent] 
 
-    def generate_features(self):
-        X_train = [sent2features(s) for s in train_sents]
-        y_train = [sent2labels(s) for s in train_sents]
+    def doc2features(self, doc):
+        return [self.sent2features(sent) for sent in doc]
 
-        X_test = [sent2features(s) for s in test_sents]
-        y_test = [sent2labels(s) for s in test_sents]
+    def doc2labels(self, doc):
+        return [self.sent2labels(sent) for sent in doc]
+
+    def generate_features(self):
+        #X_train = [self.sent2features(s) for s in train_sents]
+        #y_train = [self.sent2labels(s) for s in train_sents]
+
+        self.X_train = [self.doc2features(d) for d in self.train_sents]
+        self.y_train = [self.doc2labels(d) for d in self.train_sents]
+
+        self.X_test = [self.doc2features(s) for s in self.test_sents]
+        self.y_test = [self.doc2labels(s) for s in self.test_sents]
         print("Features created for train and test data")
 
     def train_model(self):
         trainer = pycrfsuite.Trainer(verbose=True)
         print("pycrfsuite Trainer init")
 
-        for xseq, yseq in zip(X_train, y_train):
+        for doc_x, doc_y in zip(self.X_train, self.y_train):
+            xseq = []
+            yseq = []
+            for line_idx, line in enumerate(doc_x):
+                for token_idx, token in enumerate(line):
+                    xseq.append(token)
+                    yseq.append(doc_y[line_idx][token_idx])
             trainer.append(xseq, yseq)
         print("pycrfsuite Trainer has data")
 
@@ -125,6 +133,7 @@ class CrfSuite:
         print(trainer.params())
         trainer.train('test_NER.crfsuite')
 
+"""
 print("printint last iteration")
 print(trainer.logparser.last_iteration)
 
@@ -142,31 +151,31 @@ print(' '.join(sent2tokens(example_sent)), end='\n\n')
 print("Predicted:", ' '.join(tagger.tag(sent2features(example_sent))))
 print("Correct:  ", ' '.join(sent2labels(example_sent)))
 
-#evaluate model
-def bio_classification_report(y_true, y_pred):
+    #evaluate model
+    def bio_classification_report(y_true, y_pred):
 
-    """
-    Classification report for a list of BIO-encoded sequences.
-    It computes token-level metrics and discards "O" labels.
-    
-    Note that it requires scikit-learn 0.15+ (or a version from github master)
-    to calculate averages properly!
-    """
-
-    lb = LabelBinarizer()
-    y_true_combined = lb.fit_transform(list(chain.from_iterable(y_true)))
-    y_pred_combined = lb.transform(list(chain.from_iterable(y_pred)))
         
-    tagset = set(lb.classes_) - {'O'}
-    tagset = sorted(tagset, key=lambda tag: tag.split('-', 1)[::-1])
-    class_indices = {cls: idx for idx, cls in enumerate(lb.classes_)}
-    
-    return classification_report(
-        y_true_combined,
-        y_pred_combined,
-        labels = [class_indices[cls] for cls in tagset],
-        target_names = tagset,
-    )
+        Classification report for a list of BIO-encoded sequences.
+        It computes token-level metrics and discards "O" labels.
+        
+        Note that it requires scikit-learn 0.15+ (or a version from github master)
+        to calculate averages properly!
+       
+
+        lb = LabelBinarizer()
+        y_true_combined = lb.fit_transform(list(chain.from_iterable(y_true)))
+        y_pred_combined = lb.transform(list(chain.from_iterable(y_pred)))
+            
+        tagset = set(lb.classes_) - {'O'}
+        tagset = sorted(tagset, key=lambda tag: tag.split('-', 1)[::-1])
+        class_indices = {cls: idx for idx, cls in enumerate(lb.classes_)}
+        
+        return classification_report(
+            y_true_combined,
+            y_pred_combined,
+            labels = [class_indices[cls] for cls in tagset],
+            target_names = tagset,
+        )
 
 y_pred = [tagger.tag(xseq) for xseq in X_test]
 
@@ -180,3 +189,4 @@ def basic_classification_report(y_true, y_pred):
 print(basic_classification_report(y_test, y_pred))
 
 #print(bio_classification_report(y_test, y_pred))
+"""
