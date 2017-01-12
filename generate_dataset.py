@@ -3,9 +3,10 @@ import nltk
 import numpy
 import os
 import io
+import csv
 import sys, time
 
-from nltk.tokenize import word_tokenize
+from nltk.tokenize import word_tokenize, sent_tokenize
 from numpy import array
 from ast import literal_eval
 from nltk.tokenize import RegexpTokenizer
@@ -40,14 +41,17 @@ class GenerateDataset:
            "AND cn_resume LIKE '%[a-z0-9]%' "
            "AND DATALENGTH(cn_resume)>17000 "
            "AND cn_res=0 ORDER BY NEWID();"),
-            ("select TOP " + str(doc_nr) + " cn_fname, cn_lname, cn_resume " # not cn_res & not random
+            ("select TOP " + str(doc_nr) + " cn_fname, cn_lname, cn_resume, cn_present_position "  # not cn_res & not random
            "FROM tblCandidate "
            "WHERE cn_fname IS NOT NULL "
            "AND DATALENGTH(cn_fname)>2 "
            "AND cn_lname IS NOT NULL "
            "AND DATALENGTH(cn_lname)>2 "
            "AND cn_resume LIKE '%[a-z0-9]%' "
-           "AND DATALENGTH(cn_resume)>17000;")
+           "AND DATALENGTH(cn_resume)>10000 "
+           "AND cn_present_position IS NOT NULL "
+           "AND cn_present_position LIKE '%[a-z0-9]%' "
+           "AND cn_res=0;")
         ]
         return self.sql_query_list[query_nr]
 
@@ -71,42 +75,84 @@ class GenerateDataset:
         print("Pulled " + str(len(self.raw_db_table)) + " records")
 
     def tokenize_text(self):
-        self.tokenized_text = []
+        self.tokenized_docs_by_lines = []
         for doc in self.raw_db_table:
             #rtokenizer = RegexpTokenizer(r'\w+')
             #tokens = rtokenizer.tokenize(doc[2])
-            tokens = word_tokenize(doc[2])
+            doc_lines = doc[2].splitlines()
+
+            tokenized_doc_lines = []
+            for line in doc_lines:
+                line = word_tokenize(line)
+                if line != []:
+                    tokenized_doc_lines.append(line)
+
             #optional remove stop words
             #filtered_words = [w for w in tokens if not w in stopwords.words('english')]
-            self.tokenized_text.append(tokens)
-        print("Tokenized text")
+
+            # append doc to global list
+            self.tokenized_docs_by_lines.append(tokenized_doc_lines)
+
+        print("Split lines and tokenized text")
     
     def pos_tag_tokens(self):
         self.pos_doc_tokens = []
-        for doc in self.tokenized_text:
-            tagged_tokens = nltk.pos_tag(doc)
-            self.pos_doc_tokens.append(tagged_tokens)
+        for doc in self.tokenized_docs_by_lines:
+
+            tagged_doc_lines = []
+            for line in doc:
+                tagged_line = nltk.pos_tag(line)
+                tagged_doc_lines.append(tagged_line)
+
+            self.pos_doc_tokens.append(tagged_doc_lines)
         print("POS tagged tokens")
             
     def ner_tag_tokens(self):
+        self.name_tag_tokens()
+        self.current_position_tag_tokens()
+
+    def name_tag_tokens(self):
         self.ner_doc_tokens = []
-        pers_count = 0
 
-        for doc_idx, doc in enumerate(self.tokenized_text):
-            single_ner_doc = []
-            for token_idx, token in enumerate(doc):
-                rtokenizer = RegexpTokenizer(r'\w+')
-                matching_names = rtokenizer.tokenize((str(self.raw_db_table[doc_idx][0]) + " " + str(self.raw_db_table[doc_idx][1])).lower())
-                
-                if any(token.lower() == s for s in matching_names):
-                    #replace word with tagged tuple
-                    single_ner_doc.append((token, "PERS"))
-                    pers_count += 1
-                else: 
-                    single_ner_doc.append((token, "O"))
+        for doc_idx, doc in enumerate(self.tokenized_docs_by_lines):
+            tagged_doc = []
 
-            self.ner_doc_tokens.append(single_ner_doc)
-        print("NER tagged tokens")
+            for line in doc:
+                single_doc_line = []
+                for token_idx, token in enumerate(line):
+                    rtokenizer = RegexpTokenizer(r'\w+')
+                    matching_names = rtokenizer.tokenize((str(self.raw_db_table[doc_idx][0]) + " " + str(self.raw_db_table[doc_idx][1])).lower())
+                    
+                    if any(token.lower() == s for s in matching_names):
+                        #replace word with tagged tuple
+                        single_doc_line.append((token, "PERS"))
+                    else: 
+                        single_doc_line.append((token, "O"))
+
+                tagged_doc.append(single_doc_line)
+
+            self.ner_doc_tokens.append(tagged_doc)
+
+        print("NER name tagged tokens")
+
+    def current_position_tag_tokens(self):
+        for doc_idx, doc in enumerate(self.tokenized_docs_by_lines):
+
+            for line_idx, line in enumerate(doc):
+                matching_curpos_window = word_tokenize((str(self.raw_db_table[doc_idx][3])).lower())
+                last_index_of_line = len(line)-1
+                last_index_of_window = len(matching_curpos_window)-1
+
+                for current_tkn_idx in range(0, (last_index_of_line - last_index_of_window) + 1):
+                    current_window = line[current_tkn_idx:current_tkn_idx+len(matching_curpos_window)]
+                    current_window = [x.lower() for x in current_window]
+
+                    if current_window == matching_curpos_window:
+                        # change ner tag to current position
+                        for found_idx in range(current_tkn_idx, (current_tkn_idx + last_index_of_window) + 1):
+                            self.ner_doc_tokens[doc_idx][line_idx][found_idx] = (line[found_idx], "EMPHIST-CURPOS")
+
+        print("NER current position tagged tokens")
 
     def nonlocal_ner_tag_tokens(self):
         #nltk.internals.config_java(options='-Xmx4192m')
@@ -125,23 +171,40 @@ class GenerateDataset:
 
         st._stanford_jar = ':'.join(stanford_jars)
 
-        self.nonlocal_ner_doc_tokens = st.tag_sents(self.tokenized_text)
-
-        print(self.nonlocal_ner_doc_tokens)
-		
+        self.nonlocal_ner_doc_tokens = []
+        for doc_idx, doc in enumerate(self.tokenized_docs_by_lines):
+            self.nonlocal_ner_doc_tokens.append(st.tag_sents(doc))
+        print("NER nonlocal tagged tokens")
 
     def save_tagged_tokens(self):
-        path = self.__dataset_folder + "/" + self.__dataset_name
-        try:
-            os.remove(path)
-        except OSError:
-            pass
-        with io.open (path,'a', encoding='utf-8') as proc_seqf:
-            for doc_idx, doc in enumerate(self.ner_doc_tokens):
-                for token_idx, token in enumerate(doc):
+        path = self.__dataset_folder + "/"
+
+        for doc_idx, doc in enumerate(self.ner_doc_tokens):
+            doc_file = open(path + str(doc_idx) + '.txt', 'w', encoding='utf-8')
+            for line_idx, line in enumerate(doc):
+                for token_idx, token in enumerate(line):
                     # token, pos_tag, ner_tag
-                    proc_seqf.write("{}\t{}\t{}\t{}\n".format(token[0],
-                        self.pos_doc_tokens[doc_idx][token_idx][1], self.nonlocal_ner_doc_tokens[doc_idx][token_idx][1], token[1]))
-                proc_seqf.write("\n")
+                    #print("length ner doc: " + str(len(doc)) + " length pos doc: " + str(len(self.pos_doc_tokens[doc_idx])) + " length nonlocal doc: " + str(len(self.nonlocal_ner_doc_tokens[doc_idx])))
+                    doc_file.write("{}\t{}\t{}\t{}\n".format(token[0], self.pos_doc_tokens[doc_idx][line_idx][token_idx][1], self.nonlocal_ner_doc_tokens[doc_idx][line_idx][token_idx][1], token[1]))
+                doc_file.write("\n")
+            doc_file.close()
 
         print("Saved tagged tokens to: " + path)
+
+    def read_tagged_tokens(self):
+        dataset_docs = []
+        for filename in os.listdir(self.__dataset_folder):
+            current_file_path = self.__dataset_folder + "/" + filename
+            if current_file_path.endswith(".txt"):
+                with io.open(current_file_path, 'r', encoding='utf-8') as tsvin:
+                    single_doc = []
+                    single_line = []
+                    tsvin = csv.reader(tsvin, delimiter='\t')
+                    for row in tsvin:
+                        if not row:
+                            single_doc.append(single_line)
+                            single_line = []
+                        else: 
+                            single_line.append((row[0], row[1], row[2], row[3]))
+                    dataset_docs.append(single_doc) 
+        return dataset_docs	

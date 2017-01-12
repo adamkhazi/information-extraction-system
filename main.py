@@ -4,7 +4,7 @@ from generate_dataset import GenerateDataset
 
 def main():
     gd = GenerateDataset()
-    gd.pull_db_records(2, 1)
+    gd.pull_db_records(2, 10)
     gd.tokenize_text()
     gd.pos_tag_tokens()
     gd.ner_tag_tokens()
