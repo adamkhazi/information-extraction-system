@@ -5,6 +5,7 @@ import os
 import io
 import csv
 import sys, time
+import glob
 
 from nltk.tokenize import word_tokenize, sent_tokenize
 from numpy import array
@@ -51,7 +52,7 @@ class GenerateDataset:
            "AND DATALENGTH(cn_resume)>10000 "
            "AND cn_present_position IS NOT NULL "
            "AND cn_present_position LIKE '%[a-z0-9]%' "
-           "AND cn_res=0;")
+           "AND cn_res=0 ORDER BY NEWID();")
         ]
         return self.sql_query_list[query_nr]
 
@@ -82,8 +83,11 @@ class GenerateDataset:
             doc_lines = doc[2].splitlines()
 
             tokenized_doc_lines = []
+            rtokenizer = RegexpTokenizer(r'\w+')
             for line in doc_lines:
-                line = word_tokenize(line)
+                line = rtokenizer.tokenize(line)
+                #line = word_tokenize(line)
+
                 if line != []:
                     tokenized_doc_lines.append(line)
 
@@ -94,19 +98,20 @@ class GenerateDataset:
             self.tokenized_docs_by_lines.append(tokenized_doc_lines)
 
         print("Split lines and tokenized text")
-    
+
     def pos_tag_tokens(self):
         self.pos_doc_tokens = []
         for doc in self.tokenized_docs_by_lines:
 
             tagged_doc_lines = []
+            print("done pos tag for doc")
             for line in doc:
                 tagged_line = nltk.pos_tag(line)
                 tagged_doc_lines.append(tagged_line)
 
             self.pos_doc_tokens.append(tagged_doc_lines)
         print("POS tagged tokens")
-            
+
     def ner_tag_tokens(self):
         self.name_tag_tokens()
         self.current_position_tag_tokens()
@@ -122,11 +127,11 @@ class GenerateDataset:
                 for token_idx, token in enumerate(line):
                     rtokenizer = RegexpTokenizer(r'\w+')
                     matching_names = rtokenizer.tokenize((str(self.raw_db_table[doc_idx][0]) + " " + str(self.raw_db_table[doc_idx][1])).lower())
-                    
+
                     if any(token.lower() == s for s in matching_names):
                         #replace word with tagged tuple
                         single_doc_line.append((token, "PERS"))
-                    else: 
+                    else:
                         single_doc_line.append((token, "O"))
 
                 tagged_doc.append(single_doc_line)
@@ -155,8 +160,6 @@ class GenerateDataset:
         print("NER current position tagged tokens")
 
     def nonlocal_ner_tag_tokens(self):
-        #nltk.internals.config_java(options='-Xmx4192m')
-
         from os.path import expanduser
         home = expanduser("~")
 
@@ -164,19 +167,39 @@ class GenerateDataset:
         os.environ['STANFORD_MODELS'] = home + '/stanford-ner-2015-12-09/classifiers'
 
         st = StanfordNERTagger("english.all.3class.distsim.crf.ser.gz", java_options='-mx4000m')
-        
+
         stanford_dir = st._stanford_jar[0].rpartition('/')[0]
         from nltk.internals import find_jars_within_path
         stanford_jars = find_jars_within_path(stanford_dir)
 
         st._stanford_jar = ':'.join(stanford_jars)
 
+        nltk.internals.config_java(options='-tokenizerFactory edu.stanford.nlp.process.WhitespaceTokenizer -tokenizerOptions "tokenizeNLs=true"')
+
         self.nonlocal_ner_doc_tokens = []
+        temp_nonlocal_bulk_process = []
+        length_of_docs = [len(doc) for doc in self.tokenized_docs_by_lines]
         for doc_idx, doc in enumerate(self.tokenized_docs_by_lines):
-            self.nonlocal_ner_doc_tokens.append(st.tag_sents(doc))
+            for line_idx, line in enumerate(doc):
+                temp_nonlocal_bulk_process.append(line)
+
+        #for doc_idx, doc in enumerate(self.tokenized_docs_by_lines):
+            #print ("Nonlocal taggin doc " + str(doc_idx+1), end="\r")
+        temp_nonlocal_bulk_process = st.tag_sents(temp_nonlocal_bulk_process)
+            #self.nonlocal_ner_doc_tokens.append(st.tag_sents(doc))
+
+        current_idx = 0
+        for doc_len_idx, doc_len in enumerate(length_of_docs):
+            self.nonlocal_ner_doc_tokens.append(temp_nonlocal_bulk_process[current_idx:current_idx+doc_len])
+            current_idx += doc_len
         print("NER nonlocal tagged tokens")
 
     def save_tagged_tokens(self):
+        directory=self.__dataset_folder
+        files=glob.glob('*.txt')
+        for filename in files:
+            os.unlink(filename)
+
         path = self.__dataset_folder + "/"
 
         for doc_idx, doc in enumerate(self.ner_doc_tokens):
@@ -201,10 +224,11 @@ class GenerateDataset:
                     single_line = []
                     tsvin = csv.reader(tsvin, delimiter='\t')
                     for row in tsvin:
+                        print(row)
                         if not row:
                             single_doc.append(single_line)
                             single_line = []
-                        else: 
+                        else:
                             single_line.append((row[0], row[1], row[2], row[3]))
-                    dataset_docs.append(single_doc) 
-        return dataset_docs	
+                    dataset_docs.append(single_doc)
+        return dataset_docs

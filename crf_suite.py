@@ -26,10 +26,10 @@ class CrfSuite:
     def first_letter_upper(self, token):
         return token[0].isupper()
 
-    def word2features(self, sent, i):
-        word = sent[i][0]
-        postag = sent[i][1]
-        nonlocalnertag = sent[i][2]
+    def word2features(self, line, token_idx, line_idx, doc_size):
+        word = line[token_idx][0]
+        postag = line[token_idx][1]
+        nonlocalnertag = line[token_idx][2]
         features = [
             'bias',
             'word.lower=' + word.lower(),
@@ -39,68 +39,73 @@ class CrfSuite:
             'word.istitle=%s' % word.istitle(),
             'word.isdigit=%s' % word.isdigit(),
             'word.firstletterupper=%s' % self.first_letter_upper(word),
-            'word.idx=' + str(i),
+            'word.idx=' + str(token_idx),
             'postag=' + postag,
             'postag[:2]=' + postag[:2],
             'nonlocalnertag=' + nonlocalnertag,
+            'line.idx=' + str(line_idx),
         ]
-        
-        if i > 0:
-            word1 = sent[i-1][0]
-            postag1 = sent[i-1][1]
-            nonlocalnertag1 = sent[i-1][2]
+
+        if line_idx == 0:
+            features.append('BOD')
+
+        if token_idx > 0:
+            word1 = line[token_idx-1][0]
+            postag1 = line[token_idx-1][1]
+            nonlocalnertag1 = line[token_idx-1][2]
             features.extend([
                 '-1:word.lower=' + word1.lower(),
                 '-1:word.istitle=%s' % word1.istitle(),
                 '-1:word.isupper=%s' % word1.isupper(),
                 '-1word.firstletterupper=%s' % self.first_letter_upper(word1),
-                '-1word.idx=' + str(i-1),
+                '-1word.idx=' + str(token_idx-1),
                 '-1:postag=' + postag1,
                 '-1:postag[:2]=' + postag1[:2],
                 '-1:nonlocalnertag=' + nonlocalnertag,
             ])
         else:
-            features.append('BOD')
-            
-        if i < len(sent)-1:
-            word1 = sent[i+1][0]
-            postag1 = sent[i+1][1]
-            nonlocalnertag1 = sent[i+1][2]
+            features.append('BOL')
+
+        if token_idx < len(line)-1:
+            word1 = line[token_idx+1][0]
+            postag1 = line[token_idx+1][1]
+            nonlocalnertag1 = line[token_idx+1][2]
             features.extend([
                 '+1:word.lower=' + word1.lower(),
                 '+1:word.istitle=%s' % word1.istitle(),
                 '+1:word.isupper=%s' % word1.isupper(),
                 '+1word.firstletterupper=%s' % self.first_letter_upper(word1),
-                '+1word.idx=' + str(i+1),
+                '+1word.idx=' + str(token_idx+1),
                 '+1:postag=' + postag1,
                 '+1:postag[:2]=' + postag1[:2],
                 '+1:nonlocalnertag=' + nonlocalnertag,
             ])
 
         else:
+            features.append('EOL')
+
+        if line_idx == doc_size:
             features.append('EOD')
 
         return features
 
-    def sent2features(self, sent):
-        return [self.word2features(sent, i) for i in range(len(sent))]
+    def sent2features(self, line, line_idx, doc_size):
+        return [self.word2features(line, token_idx, line_idx, doc_size) for token_idx in range(len(line))]
 
     def sent2labels(self, sent):
         return [label for token, postag, nonlocalnertag, label in sent]
 
     def sent2tokens(self, sent):
-        return [token for token, postag, nonlocalnertag, label in sent] 
+        return [token for token, postag, nonlocalnertag, label in sent]
 
     def doc2features(self, doc):
-        return [self.sent2features(sent) for sent in doc]
+        return [self.sent2features(doc[line_idx], line_idx, len(doc)-1) for line_idx in range(len(doc))]
+        #return [self.sent2features(line) for line in doc]
 
     def doc2labels(self, doc):
         return [self.sent2labels(sent) for sent in doc]
 
     def generate_features(self):
-        #X_train = [self.sent2features(s) for s in train_sents]
-        #y_train = [self.sent2labels(s) for s in train_sents]
-
         self.X_train = [self.doc2features(d) for d in self.train_sents]
         self.y_train = [self.doc2labels(d) for d in self.train_sents]
 
@@ -132,6 +137,36 @@ class CrfSuite:
         })
         print(trainer.params())
         trainer.train('test_NER.crfsuite')
+
+    def basic_classification_report(self, y_true, y_pred):
+        lb = LabelBinarizer()
+
+        y_true_combined = lb.fit_transform(list(chain.from_iterable(y_true)))
+        y_pred_combined = lb.transform(list(chain.from_iterable(y_pred)))
+
+        return classification_report(y_true_combined, y_pred_combined)
+
+    def test_model(self):
+        #predictions
+        tagger = pycrfsuite.Tagger()
+        tagger.open('test_NER.crfsuite')
+        docs_x_test = []
+        docs_y_test_true = []
+
+        for doc_x, doc_y in zip(self.X_test, self.y_test):
+            xseq = []
+            yseq = []
+            for line_idx, line in enumerate(doc_x):
+                for token_idx, token in enumerate(line):
+                    xseq.append(token)
+                    yseq.append(doc_y[line_idx][token_idx])
+            docs_x_test.append(xseq)
+            docs_y_test_true.append(yseq)
+
+        y_pred = [tagger.tag(doc) for doc in docs_x_test]
+
+        print(self.basic_classification_report(docs_y_test_true, y_pred))
+
 
 """
 print("printint last iteration")
