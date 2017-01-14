@@ -14,6 +14,7 @@ from nltk.tokenize import RegexpTokenizer
 from nltk.corpus import stopwords
 from nltk.tag import StanfordNERTagger
 from nltk.internals import find_jars_within_path
+from os.path import expanduser
 
 from db_connection import DbConnection
 
@@ -29,7 +30,7 @@ class GenerateDataset:
            "where cn_fname IS NOT NULL "
            "AND DATALENGTH(cn_fname)>2 "
            "AND cn_lname IS NOT NULL "
-           "AND DATALENGTH(cn_lname)>2 " 
+           "AND DATALENGTH(cn_lname)>2 "
            "AND cn_resume LIKE '%[a-z0-9]%' "
            "AND DATALENGTH(cn_resume)>14000 "
            "AND cn_res=0;"),
@@ -160,20 +161,18 @@ class GenerateDataset:
         print("NER current position tagged tokens")
 
     def nonlocal_ner_tag_tokens(self):
-        from os.path import expanduser
         home = expanduser("~")
-
         os.environ['CLASSPATH'] = home + '/stanford-ner-2015-12-09'
         os.environ['STANFORD_MODELS'] = home + '/stanford-ner-2015-12-09/classifiers'
 
         st = StanfordNERTagger("english.all.3class.distsim.crf.ser.gz", java_options='-mx4000m')
 
         stanford_dir = st._stanford_jar[0].rpartition('/')[0]
-        from nltk.internals import find_jars_within_path
         stanford_jars = find_jars_within_path(stanford_dir)
 
         st._stanford_jar = ':'.join(stanford_jars)
 
+        # do not tokenise text
         nltk.internals.config_java(options='-tokenizerFactory edu.stanford.nlp.process.WhitespaceTokenizer -tokenizerOptions "tokenizeNLs=true"')
 
         self.nonlocal_ner_doc_tokens = []
@@ -183,10 +182,7 @@ class GenerateDataset:
             for line_idx, line in enumerate(doc):
                 temp_nonlocal_bulk_process.append(line)
 
-        #for doc_idx, doc in enumerate(self.tokenized_docs_by_lines):
-            #print ("Nonlocal taggin doc " + str(doc_idx+1), end="\r")
         temp_nonlocal_bulk_process = st.tag_sents(temp_nonlocal_bulk_process)
-            #self.nonlocal_ner_doc_tokens.append(st.tag_sents(doc))
 
         current_idx = 0
         for doc_len_idx, doc_len in enumerate(length_of_docs):
@@ -224,7 +220,6 @@ class GenerateDataset:
                     single_line = []
                     tsvin = csv.reader(tsvin, delimiter='\t')
                     for row in tsvin:
-                        print(row)
                         if not row:
                             single_doc.append(single_line)
                             single_line = []
