@@ -7,10 +7,28 @@ import pycrfsuite
 import csv
 import math
 import io
+import time
+import logging
+import copy
+from gensim.models import word2vec
 
 from generate_dataset import GenerateDataset
 
 class CrfSuite:
+
+    def generate_embeddings(self):
+        logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
+        copy_total_sents = copy.deepcopy(self.total_sents)
+        all_lines = []
+        for doc_idx, doc in enumerate(copy_total_sents):
+            for line_idx, line in enumerate(doc):
+                all_lines.append(line)
+
+        for line_idx, line in enumerate(all_lines):
+            for token_idx, token in enumerate(line):
+                all_lines[line_idx][token_idx] = token[0]
+
+        self.model = word2vec.Word2Vec(all_lines, size=100)
 
     def encode_dataset(self):
         self.word2idx = {}
@@ -54,15 +72,17 @@ class CrfSuite:
                     current_word = token[0].lower()
                     bigram = bigram_prev_word + ' ' + current_word
                     bigram_prev_word = current_word
+                    if bigram in self.bigram2idx:
+                        self.bigram2idx[bigram] += 1
+                    else:
+                        self.bigram2idx[bigram] = 1
+                    """
                     if bigram not in self.bigram2idx:
                         self.bigram2idx[bigram] = self.bigram_idx
                         self.bigram_idx += 1
-
-
-
+                        """
         print("encode_dataset: " + str(self.word_idx) + " unique words")
         print("encode_dataset: " + str(self.bigram_idx) + " unique bigrams")
-
 
     def get_dataset(self):
         gd = GenerateDataset()
@@ -80,9 +100,10 @@ class CrfSuite:
 
     def word2features(self, line, token_idx, line_idx, doc_idx, doc_size):
         word = line[token_idx][0]
-        postag = line[token_idx][1]
-        nonlocalnertag = line[token_idx][2]
+        #postag = line[token_idx][1]
+        #nonlocalnertag = line[token_idx][2]
 
+        """
         bigram = ''
         if line_idx == 0 and token_idx == 0:
             bigram = "START" + ' ' + word.lower()
@@ -93,14 +114,20 @@ class CrfSuite:
         else:
             prev_word = line[token_idx-1][0].lower()
             bigram = prev_word + ' ' + word.lower()
+        """
 
         features = {
                 "bias": 1.0,
                 "word_idx": self.word2idx[word.lower()],
-                "bigram_idx": self.bigram2idx[bigram],
-                "pos_idx": self.pos_tag2idx[postag]
+                #"bigram_idx_count": self.bigram2idx[bigram],
+                #"pos_idx": self.pos_tag2idx[postag]
         }
+        #for d_idx, dimension in enumerate(self.model[word]):
+            #features["we_dimen_"+str(d_idx)] = dimension
+        #print("word: " + word.lower() + " bigram: " + bigram.lower())
+        #time.sleep(1)
 
+        """
         if token_idx > 0:
             word1 = line[token_idx-1][0]
             postag1 = line[token_idx-1][1]
@@ -140,6 +167,7 @@ class CrfSuite:
             features['nl+2'] = self.nonlocal_ner_tag2idx[nonlocalnertag2]
             features['p+2'] = self.pos_tag2idx[postag2]
             features['w+2'] = self.word2idx[word2.lower()]
+            """
 
         if line_idx == 0:
             features['BOD'] = 1.0
@@ -247,7 +275,7 @@ class CrfSuite:
         trainer.set_params({
             'c1': 1.0,   # coefficient for L1 penalty
             'c2': 1,  # coefficient for L2 penalty
-            'max_iterations': 200,  # stop earlier
+            'max_iterations': 100,  # stop earlier
 
             # include transitions that are possible, but not observed
             'feature.possible_transitions': True
@@ -261,7 +289,12 @@ class CrfSuite:
         y_true_combined = lb.fit_transform(list(chain.from_iterable(y_true)))
         y_pred_combined = lb.transform(list(chain.from_iterable(y_pred)))
 
-        return classification_report(y_true_combined, y_pred_combined)
+        tagset = set(lb.classes_)
+        tagset = sorted(tagset, key=lambda tag: tag.split('-', 1)[::-1])
+
+        class_indices = {cls: idx for idx, cls in enumerate(lb.classes_)}
+
+        return classification_report(y_true_combined, y_pred_combined, labels = [class_indices[cls] for cls in tagset], target_names = tagset)
 
     def test_model(self):
         #predictions

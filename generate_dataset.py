@@ -143,16 +143,13 @@ class GenerateDataset:
 
     def current_position_tag_tokens(self):
         for doc_idx, doc in enumerate(self.tokenized_docs_by_lines):
-
             for line_idx, line in enumerate(doc):
                 matching_curpos_window = word_tokenize((str(self.raw_db_table[doc_idx][3])).lower())
                 last_index_of_line = len(line)-1
                 last_index_of_window = len(matching_curpos_window)-1
-
                 for current_tkn_idx in range(0, (last_index_of_line - last_index_of_window) + 1):
                     current_window = line[current_tkn_idx:current_tkn_idx+len(matching_curpos_window)]
                     current_window = [x.lower() for x in current_window]
-
                     if current_window == matching_curpos_window:
                         # change ner tag to current position
                         for found_idx in range(current_tkn_idx, (current_tkn_idx + last_index_of_window) + 1):
