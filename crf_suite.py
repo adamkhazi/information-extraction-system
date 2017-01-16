@@ -229,7 +229,6 @@ class CrfSuite:
         if line_idx == doc_size:
             features.append('EOD')
         """
-
         return features
 
     def sent2features(self, line, line_idx, doc_idx, doc_size):
