@@ -100,6 +100,9 @@ db_generated_datasets/*
 example_datasets/*
 !example_datasets/.gitkeep
 
+# trained models
+pre_trained_models/*
+
 #trialing stanford implementation 
 stanford-ner*
 
