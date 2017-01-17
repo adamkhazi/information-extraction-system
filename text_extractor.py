@@ -21,29 +21,40 @@ class TextExtractor:
         self.dataset_filenames = []
         for filename in os.listdir(self.__dataset_raw_data_folder):
             if filename.endswith(self.__file_ext_pdf) or filename.endswith(self.__file_ext_doc):
-                self.dataset_filenames.append(os.path.splitext(filename)[0])
+                filename, file_ext = os.path.splitext(filename)
+                self.dataset_filenames.append((filename, file_ext))
 
     def get_extracted_content(self):
         # files share an index
         file_content = []
         file_metadata = []
 
-        for filename in enumerate(self.dataset_filenames):
-            filepath = self.__dataset_raw_data_folder + self.__file_path_seperator + self.__file_ext_txt
+        for idx, filename in enumerate(self.dataset_filenames):
+            # append filename + ext to path
+            filepath = self.__dataset_raw_data_folder + self.__file_path_seperator + filename[0] + filename[1]
             extracted_information = parser.from_file(filepath)
             file_content.append(extracted_information["content"])
             file_metadata.append(extracted_information["metadata"])
 
-        return file_content, file_metadata
+        self.pdf_content = file_content
+        self.pdf_metadata = file_metadata
 
     # xml[0].NewDataSet.Profile.cn_fname.cdata.strip()
     def read_xml_labelled_info(self):
         xml_labels = []
         for idx, filename in enumerate(self.dataset_filenames):
-            filepath = self.__dataset_raw_data_folder + self.__file_path_seperator + filename + self.__file_ext_xml
+            filepath = self.__dataset_raw_data_folder + self.__file_path_seperator + filename[0] + self.__file_ext_xml
             xml_file = untangle.parse(filepath)
             xml_labels.append(xml_file)
         return xml_labels
+
+    def tokenise_content_by_line(self):
+        for idx, file_content in enumerate(self.pdf_content):
+            self.pdf_content[idx] = file_content.splitlines()
+
+    def tokenise_content_by_words(self):
+        for idx, file in enumerate(self.
+
 """
 ner_words = nltk.ne_chunk(pos_words)
 print(ner_words)
