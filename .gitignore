@@ -111,3 +111,6 @@ stanford-ner*
 
 # playground for expirimentation
 playground/*
+
+# raw data files
+dataset_raw_data/*

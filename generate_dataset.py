@@ -224,3 +224,4 @@ class GenerateDataset:
                             single_line.append((row[0], row[1], row[2], row[3]))
                     dataset_docs.append(single_doc)
         return dataset_docs
+
