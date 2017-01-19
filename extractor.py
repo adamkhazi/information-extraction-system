@@ -45,13 +45,13 @@ class Extractor:
         self.resume_metadata = file_metadata
 
     # xml[0].NewDataSet.Profile.cn_fname.cdata.strip()
-    def read_xml_labels(self):
-        xml_labels = []
+    def read_resume_labels(self):
+        resume_labels = []
         for idx, filename in enumerate(self.dataset_filenames):
             filepath = self.__dataset_raw_data_folder + self.__file_path_seperator + filename[0] + self.__file_ext_xml
             xml_file = untangle.parse(filepath)
-            xml_labels.append(xml_file)
-        self.xml_labels = xml_labels
+            resume_labels.append(xml_file)
+        self.resume_labels = resume_labels
 
     def tokenise_content_by_line(self):
         for idx, file_content in enumerate(self.resume_content):
@@ -69,8 +69,8 @@ class Extractor:
 
     def prepare_dataset(self):
         self.populate_file_names()
-        self.get_extracted_content()
-        self.read_xml_labelled_info()
+        self.read_resume_content()
+        self.read_resume_labels()
         self.tokenise_content_by_line()
         self.tokenise_content_by_words()
 

@@ -24,6 +24,29 @@ class ExtractorTests(unittest.TestCase):
         number_of_files += len(glob.glob1(directory,"*.docx"))
         number_of_files += len(glob.glob1(directory,"*.pdf"))
 
-        number_of_extracted_files = len(extractor.resume_content)
-        self.assertTrue(number_of_files == number_of_extracted_files)
+        number_of_resumes = len(extractor.resume_content)
+        self.assertTrue(number_of_files == number_of_resumes)
+
+    def test_read_xml_labels(self):
+        extractor = Extractor()
+        extractor.populate_file_names()
+        extractor.read_resume_content()
+        extractor.read_resume_labels()
+
+        # check if all résumé files have labels
+        number_of_resumes = len(extractor.resume_content)
+        number_of_resume_labels = len(extractor.resume_labels)
+
+        self.assertTrue(number_of_resumes == number_of_resume_labels)
+
+        # check if labels are not empty
+        for resume_label in extractor.resume_labels:
+            for job in resume_label.NewDataSet.Jobs:
+                self.assertTrue(len(job.job_position.cdata.strip()) > 0)
+                self.assertTrue(len(job.job_company_name.cdata.strip()) > 0)
+
+
+
+
+
 
