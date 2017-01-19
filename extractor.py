@@ -67,9 +67,17 @@ class Extractor:
                     tokenized_doc_lines.append(line)
             self.resume_content[doc_idx] = tokenized_doc_lines
 
+    def remove_empty_resumes(self):
+        for idx, file_content in enumerate(self.resume_content):
+            if file_content is None:
+                del self.dataset_filenames[idx]
+                del self.resume_content[idx]
+
+
     def prepare_dataset(self):
         self.populate_file_names()
         self.read_resume_content()
+        self.remove_empty_resumes()
         self.read_resume_labels()
         self.tokenise_content_by_line()
         self.tokenise_content_by_words()

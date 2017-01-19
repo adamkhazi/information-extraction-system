@@ -3,6 +3,10 @@ import pdb
 from nltk.tokenize import RegexpTokenizer
 
 class Tagger:
+    __outside_tag = "O"
+    __begin_tag_prefix = "B-"
+    __inside_tag_prefix = "I-"
+
     def get_job_titles(xml):
         return job_title_list
 
@@ -17,9 +21,8 @@ class Tagger:
 
         content_flat_list_len = len(content_flat_list)
 
-        idx = label_str_len-1
+        idx = max(0, label_str_len-1)
         while idx < content_flat_list_len:
-            print(idx)
             trailing_window_len = idx - (label_str_len-1)
             comparison = content_flat_list[trailing_window_len:idx+1]
             comparison = [item.lower() for item in comparison]
@@ -27,11 +30,27 @@ class Tagger:
             idx += 1
             if comparison == label_str:
                 #found
-                print("found something================")
                 for matches_idx in range(trailing_window_len, idx):
-                    print(content_flat_list[matches_idx])
-                    content_flat_list[matches_idx] = (doc[matches_idx], match_tag)
-                idx += (label_str_len-1)
+                    current_tag = ""
+                    if matches_idx == trailing_window_len:
+                        current_tag = self.__begin_tag_prefix + match_tag
+                    else:
+                        current_tag = self.__inside_tag_prefix + match_tag
+                    content_flat_list[matches_idx] = (content_flat_list[matches_idx], "", "", current_tag)
+
+                idx += max(1, (label_str_len-1))
+        for token_idx, token in enumerate(content_flat_list):
+            if type(content_flat_list[token_idx]) is str:
+                content_flat_list[token_idx] = (content_flat_list[token_idx], "", "", self.__outside_tag)
+
 
         # re create 2d list
+        start_idx = 0
+        recreated_list = []
+        for list_len in length_of_lines:
+            recreated_list.append(content_flat_list[start_idx:start_idx+list_len])
+            start_idx += list_len
+
+        return recreated_list
+
 
