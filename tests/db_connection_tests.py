@@ -5,7 +5,7 @@ import configparser
 import db_connection
 from db_connection import DbConnection
 
-class DbConnectionTestsi(unittest.TestCase):
+class DbConnectionTests(unittest.TestCase):
 
     def test_config_parser(self):
         db_con = DbConnection()
@@ -17,7 +17,7 @@ class DbConnectionTestsi(unittest.TestCase):
         self.assertIsInstance(config.get('AzureDB', 'username'), str)
         self.assertIsInstance(config.get('AzureDB', 'password'), str)
         self.assertIsInstance(config.get('AzureDB', 'database_1'), str)
-        
+
         # config is not empty
         self.assertTrue(len(config.get('AzureDB', 'server_URI')) > 0)
         self.assertTrue(len(config.get('AzureDB', 'username')) > 0)

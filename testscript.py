@@ -4,10 +4,10 @@ from numpy import array
 from generate_dataset import GenerateDataset
 from document import TokenIterable
 from tagger import Tagger
-from text_extractor import TextExtractor
+from extractor import Extractor
 
 gd = GenerateDataset()
-te = TextExtractor()
+te = Extractor()
 tagger = Tagger()
 
 document_example = [
