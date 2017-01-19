@@ -5,6 +5,7 @@ import untangle
 import os
 
 from tika import parser
+from nltk.tokenize import RegexpTokenizer
 from nltk.tokenize import word_tokenize
 
 class TextExtractor:
@@ -46,14 +47,28 @@ class TextExtractor:
             filepath = self.__dataset_raw_data_folder + self.__file_path_seperator + filename[0] + self.__file_ext_xml
             xml_file = untangle.parse(filepath)
             xml_labels.append(xml_file)
-        return xml_labels
+        self.xml_labels = xml_labels
 
     def tokenise_content_by_line(self):
         for idx, file_content in enumerate(self.pdf_content):
             self.pdf_content[idx] = file_content.splitlines()
 
     def tokenise_content_by_words(self):
-        for idx, file in enumerate(self.
+        rtokenizer = RegexpTokenizer(r'\w+')
+        for doc_idx, doc in enumerate(self.pdf_content):
+            tokenized_doc_lines = []
+            for line_idx, line in enumerate(doc):
+                line = rtokenizer.tokenize(line)
+                if line != []:
+                    tokenized_doc_lines.append(line)
+            self.pdf_content[doc_idx] = tokenized_doc_lines
+
+    def prepare_dataset(self):
+        self.populate_file_names()
+        self.get_extracted_content()
+        self.read_xml_labelled_info()
+        self.tokenise_content_by_line()
+        self.tokenise_content_by_words()
 
 """
 ner_words = nltk.ne_chunk(pos_words)
