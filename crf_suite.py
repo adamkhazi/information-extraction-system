@@ -10,14 +10,26 @@ import io
 import time
 import logging
 import copy
+import gensim
 from gensim.models import word2vec
 
 from generate_dataset import GenerateDataset
+from dataset import Dataset
 
 class CrfSuite:
+    __seperator = "/"
+    __pre_trained_models_folder = "pre_trained_models"
+    __google_news_word2vec = "GoogleNews-vectors-negative300.bin.gz"
+
+    # pre-trained embeddings
+    def load_embeddings(self):
+        logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
+
+        path = self.__pre_trained_models_folder + self.__seperator + self.__google_news_word2vec
+        self.w2v_model = gensim.models.Word2Vec.load_word2vec_format(path, binary=True)
 
     def generate_embeddings(self):
-        logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
+        #logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
         copy_total_sents = copy.deepcopy(self.total_sents)
         all_lines = []
         for doc_idx, doc in enumerate(copy_total_sents):
@@ -26,10 +38,11 @@ class CrfSuite:
 
         for line_idx, line in enumerate(all_lines):
             for token_idx, token in enumerate(line):
-                all_lines[line_idx][token_idx] = token[0]
+                all_lines[line_idx][token_idx] = token[0].lower()
 
-        self.model = word2vec.Word2Vec(all_lines, size=100)
+        self.w2v_model = word2vec.Word2Vec(all_lines, size=50)
 
+    # n-gram generation
     def encode_dataset(self):
         self.word2idx = {}
         self.pos_tag2idx = {}
@@ -37,31 +50,34 @@ class CrfSuite:
         self.ner_tag2idx = {}
 
         self.word_idx = 0
-        self.pos_tag_idx = 0
-        self.nonlocal_ner_tag_idx = 0
+        #self.pos_tag_idx = 0
+        #self.nonlocal_ner_tag_idx = 0
         self.tag_idx = 0
 
         for doc_idx, doc in enumerate(self.total_sents):
             for line_idx, line in enumerate(doc):
                 for token_idx, token in enumerate(line):
                     word = token[0].lower()
-                    pos_tag = token[1]
-                    nonlocal_ner_tag = token[2]
-                    ner_tag = token[3]
+                    #pos_tag = token[1]
+                    #nonlocal_ner_tag = token[2]
+                    ner_tag = token[1]
 
                     if word not in self.word2idx:
                         self.word2idx[word] = self.word_idx
                         self.word_idx += 1
+                    """
                     if pos_tag not in self.pos_tag2idx:
                         self.pos_tag2idx[pos_tag] = self.pos_tag_idx
                         self.pos_tag_idx += 1
                     if nonlocal_ner_tag not in self.nonlocal_ner_tag2idx:
                         self.nonlocal_ner_tag2idx[nonlocal_ner_tag] = self.nonlocal_ner_tag_idx
                         self.nonlocal_ner_tag_idx += 1
+                        """
                     if ner_tag not in self.ner_tag2idx:
                         self.ner_tag2idx[ner_tag] = self.tag_idx
                         self.tag_idx += 1
 
+        """
         self.bigram2idx = {}
         self.bigram_idx = 0
 
@@ -76,21 +92,21 @@ class CrfSuite:
                         self.bigram2idx[bigram] += 1
                     else:
                         self.bigram2idx[bigram] = 1
-                    """
                     if bigram not in self.bigram2idx:
                         self.bigram2idx[bigram] = self.bigram_idx
                         self.bigram_idx += 1
                         """
         print("encode_dataset: " + str(self.word_idx) + " unique words")
-        print("encode_dataset: " + str(self.bigram_idx) + " unique bigrams")
+        #print("encode_dataset: " + str(self.bigram_idx) + " unique bigrams")
 
     def get_dataset(self):
-        gd = GenerateDataset()
-        self.total_sents = gd.read_tagged_tokens()
+        dataset = Dataset()
+        dataset.read()
+        self.total_sents = dataset.resume_content
         print("Read " + str(len(self.total_sents)) + " documents")
 
     def split_dataset(self):
-        split_point = math.ceil(len(self.total_sents) * 0.7)
+        split_point = math.ceil(len(self.total_sents) * 0.75)
         self.train_sents = self.total_sents[0:split_point]
         self.test_sents = self.total_sents[split_point+1:]
         print("Split dataset")
@@ -118,38 +134,76 @@ class CrfSuite:
 
         features = {
                 "bias": 1.0,
-                "word_idx": self.word2idx[word.lower()],
+                "word": word.lower(),
+                'word[-3:]': word[-3:],
+                'word[-2:]': word[-2:],
+                'word.isupper': word.isupper(),
+                'word.istitle': word.istitle(),
+                'word.isdigit': word.isdigit(),
+                'word.idx': float(token_idx),
+                'line.idx': float(line_idx),
+                'line.size': float(len(line)),
+                #'word_idx': float(self.word2idx[word.lower()])
+                #"word_idx": self.model[word.lower()],
                 #"bigram_idx_count": self.bigram2idx[bigram],
                 #"pos_idx": self.pos_tag2idx[postag]
         }
-        #for d_idx, dimension in enumerate(self.model[word]):
-            #features["we_dimen_"+str(d_idx)] = dimension
+
+        """
+        try:
+            #print("trying" + " " + word)
+            for d_idx, dimension in enumerate(self.w2v_model[word.lower()]):
+                features["we_dimen_"+str(d_idx)+":"] = dimension
+        except KeyError:
+            features["we_dimen_"+str(0)+":"] = "UNKNOWN"
+        """
+
         #print("word: " + word.lower() + " bigram: " + bigram.lower())
         #time.sleep(1)
 
-        """
         if token_idx > 0:
             word1 = line[token_idx-1][0]
-            postag1 = line[token_idx-1][1]
-            nonlocalnertag1 = line[token_idx-1][2]
+            #postag1 = line[token_idx-1][1]
+            #nonlocalnertag1 = line[token_idx-1][2]
 
-            features['nl-1'] = self.nonlocal_ner_tag2idx[nonlocalnertag1]
-            features['p-1'] = self.pos_tag2idx[postag1]
-            features['w-1'] = self.word2idx[word1.lower()]
+            #features['nl-1'] = self.nonlocal_ner_tag2idx[nonlocalnertag1]
+            #features['p-1'] = self.pos_tag2idx[postag1]
+            #features['word-1'] = float(self.word2idx[word1.lower()])
+            features['word-1'] = word1.lower()
+            features['BOL'] = 0.0
+            """
+            features['word-1[-3:]'] = word1[-3:],
+            features['word-1[-2:]'] = word1[-2:],
+            features['word-1.isupper'] = word1.isupper(),
+            features['word-1.istitle'] = word1.istitle(),
+            features['word-1.isdigit'] = word1.isdigit(),
+            features['word-1.idx']= float(token_idx-1)
+            """
         else:
             features['BOL'] = 1.0
 
         if token_idx < len(line)-1:
             word1 = line[token_idx+1][0]
-            postag1 = line[token_idx+1][1]
-            nonlocalnertag1 = line[token_idx+1][2]
+            #postag1 = line[token_idx+1][1]
+            #nonlocalnertag1 = line[token_idx+1][2]
 
-            features['nl+1'] = self.nonlocal_ner_tag2idx[nonlocalnertag1]
-            features['p+1'] = self.pos_tag2idx[postag1]
-            features['w+1'] = self.word2idx[word1.lower()]
+            #features['nl+1'] = self.nonlocal_ner_tag2idx[nonlocalnertag1]
+            #features['p+1'] = self.pos_tag2idx[postag1]
+            #features['word+1'] = float(self.word2idx[word1.lower()])
+            features['word+1'] = word1.lower()
+            features['EOL'] = 0.0
+            """
+            features['word+1[-3:]'] = word1[-3:],
+            features['word+1[-2:]'] = word1[-2:],
+            features['word+1.isupper'] = word1.isupper(),
+            features['word+1.istitle'] = word1.istitle(),
+            features['word+1.isdigit'] = word1.isdigit(),
+            features['word+1.idx']= float(token_idx+1)
+            """
         else:
             features['EOL'] = 1.0
 
+        """
         if token_idx > 1:
             word2 = line[token_idx-2][0]
             postag2 = line[token_idx-2][1]
@@ -235,10 +289,13 @@ class CrfSuite:
         return [self.word2features(line, token_idx, line_idx, doc_idx, doc_size) for token_idx in range(len(line))]
 
     def sent2labels(self, sent):
-        return [label for token, postag, nonlocalnertag, label in sent]
+        labels = []
+        for token, label in sent:
+            labels.append(label)
+        return labels
 
     def sent2tokens(self, sent):
-        return [token for token, postag, nonlocalnertag, label in sent]
+        return [token for token, label in sent]
 
     def doc2features(self, doc_idx, doc):
         return [self.sent2features(doc[line_idx], line_idx, doc_idx, len(doc)-1) for line_idx in range(len(doc))]
@@ -272,9 +329,9 @@ class CrfSuite:
         print("pycrfsuite Trainer has data")
 
         trainer.set_params({
-            'c1': 1.0,   # coefficient for L1 penalty
-            'c2': 1,  # coefficient for L2 penalty
-            'max_iterations': 100,  # stop earlier
+            'c1': 0.001,   # coefficient for L1 penalty
+            'c2': 0.001,  # coefficient for L2 penalty
+            'max_iterations': 200,  # stop earlier
 
             # include transitions that are possible, but not observed
             'feature.possible_transitions': True
@@ -299,6 +356,27 @@ class CrfSuite:
         #predictions
         tagger = pycrfsuite.Tagger()
         tagger.open('test_NER.crfsuite')
+
+        # train data
+        docs_x_test = []
+        docs_y_test_true = []
+
+        for doc_x, doc_y in zip(self.X_train, self.y_train):
+            xseq = []
+            yseq = []
+            for line_idx, line in enumerate(doc_x):
+                for token_idx, token in enumerate(line):
+                    xseq.append(token)
+                    yseq.append(doc_y[line_idx][token_idx])
+            docs_x_test.append(xseq)
+            docs_y_test_true.append(yseq)
+
+        y_pred = [tagger.tag(doc) for doc in docs_x_test]
+
+        print("Training set:")
+        print(self.basic_classification_report(docs_y_test_true, y_pred))
+
+        # test data
         docs_x_test = []
         docs_y_test_true = []
 
@@ -314,6 +392,7 @@ class CrfSuite:
 
         y_pred = [tagger.tag(doc) for doc in docs_x_test]
 
+        print("Test set:")
         print(self.basic_classification_report(docs_y_test_true, y_pred))
 
 

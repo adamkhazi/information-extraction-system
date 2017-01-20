@@ -7,6 +7,7 @@ import os
 from tika import parser
 from nltk.tokenize import RegexpTokenizer
 from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
 
 class Extractor:
     __dataset_raw_data_folder = "dataset_raw_data"
@@ -17,17 +18,37 @@ class Extractor:
     __file_ext_pdf = ".pdf"
     __file_ext_doc = ".doc"
     __file_ext_docx = ".docx"
+    __file_ext_msg = ".msg"
+
+    def get_job_titles(self, label_set):
+        if not label_set.NewDataSet.Jobs:
+            return []
+
+        job_list = []
+        Jobs = label_set.NewDataSet.Jobs
+        for job in Jobs:
+            if not job.job_position:
+                continue
+            jp = job.job_position.cdata.strip()
+            job_list.append(jp)
+
+        return job_list
 
     def get_dataset_folder(self):
         return self.__dataset_raw_data_folder
 
-    # file names examples
-    def populate_file_names(self):
+    # file names examples, nr_of_file: -1 is limitless
+    def populate_file_names(self, nr_of_files=-1):
         self.dataset_filenames = []
+        counter = 0
         for filename in os.listdir(self.__dataset_raw_data_folder):
-            if filename.endswith(self.__file_ext_pdf) or filename.endswith(self.__file_ext_doc) or filename.endswith(self.__file_ext_docx):
+            if filename.endswith(self.__file_ext_pdf) or filename.endswith(self.__file_ext_doc) or filename.endswith(self.__file_ext_docx) or filename.endswith(self.__file_ext_msg) :
                 filename, file_ext = os.path.splitext(filename)
                 self.dataset_filenames.append((filename, file_ext))
+                counter += 1
+                print(filename)
+                if counter == nr_of_files and nr_of_files != -1:
+                    break
 
     def read_resume_content(self):
         # files share an index
@@ -57,6 +78,7 @@ class Extractor:
         for idx, file_content in enumerate(self.resume_content):
             self.resume_content[idx] = file_content.splitlines()
 
+    # tokenise and filter stop words
     def tokenise_content_by_words(self):
         rtokenizer = RegexpTokenizer(r'\w+')
         for doc_idx, doc in enumerate(self.resume_content):
@@ -64,7 +86,8 @@ class Extractor:
             for line_idx, line in enumerate(doc):
                 line = rtokenizer.tokenize(line)
                 if line != []:
-                    tokenized_doc_lines.append(line)
+                    filtered_words = [word for word in line if word not in stopwords.words('english')]
+                    tokenized_doc_lines.append(filtered_words)
             self.resume_content[doc_idx] = tokenized_doc_lines
 
     def remove_empty_resumes(self):
@@ -73,9 +96,8 @@ class Extractor:
                 del self.dataset_filenames[idx]
                 del self.resume_content[idx]
 
-
     def prepare_dataset(self):
-        self.populate_file_names()
+        self.populate_file_names(nr_of_files=1500)
         self.read_resume_content()
         self.remove_empty_resumes()
         self.read_resume_labels()
