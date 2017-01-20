@@ -21,7 +21,7 @@ class Dataset:
             doc_file = open(path + str(doc_idx) + '.txt', 'w', encoding='utf-8')
             for line_idx, line in enumerate(doc):
                 for token_idx, token in enumerate(line):
-                    doc_file.write("{}\t{}\n".format(token[0], token[3]))
+                    doc_file.write("{}\t{}\t{}\n".format(token[0], token[1], token[3]))
                 doc_file.write("\n")
             doc_file.close()
 
@@ -41,6 +41,6 @@ class Dataset:
                             single_doc.append(single_line)
                             single_line = []
                         else:
-                            single_line.append((row[0], row[1]))
+                            single_line.append((row[0], row[1], row[2]))
                     dataset_docs.append(single_doc)
         self.resume_content = dataset_docs

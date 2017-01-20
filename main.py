@@ -18,7 +18,7 @@ def main():
     cs = CrfSuite()
     cs.get_dataset()
     #cs.load_embeddings()
-    #cs.generate_embeddings()
+    cs.generate_embeddings()
     #cs.encode_dataset()
 
     cs.split_dataset()

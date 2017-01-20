@@ -40,7 +40,7 @@ class CrfSuite:
             for token_idx, token in enumerate(line):
                 all_lines[line_idx][token_idx] = token[0].lower()
 
-        self.w2v_model = word2vec.Word2Vec(all_lines, size=50)
+        self.w2v_model = word2vec.Word2Vec(all_lines, size=30, iter=10)
 
     # n-gram generation
     def encode_dataset(self):
@@ -149,14 +149,14 @@ class CrfSuite:
                 #"pos_idx": self.pos_tag2idx[postag]
         }
 
-        """
+
         try:
             #print("trying" + " " + word)
             for d_idx, dimension in enumerate(self.w2v_model[word.lower()]):
                 features["we_dimen_"+str(d_idx)+":"] = dimension
         except KeyError:
             features["we_dimen_"+str(0)+":"] = "UNKNOWN"
-        """
+
 
         #print("word: " + word.lower() + " bigram: " + bigram.lower())
         #time.sleep(1)

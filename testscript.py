@@ -26,6 +26,7 @@ for document_idx, document in enumerate(te.resume_content):
 
     for job_title in job_title_list:
         prepared_doc = tagger.match_label(prepared_doc, job_title, "POS")
+    prepared_doc = tagger.pos_tag(prepared_doc)
 
     dataset.resume_content.append(prepared_doc)
 

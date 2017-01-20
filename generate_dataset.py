@@ -103,9 +103,7 @@ class GenerateDataset:
     def pos_tag_tokens(self):
         self.pos_doc_tokens = []
         for doc in self.tokenized_docs_by_lines:
-
             tagged_doc_lines = []
-            print("done pos tag for doc")
             for line in doc:
                 tagged_line = nltk.pos_tag(line)
                 tagged_doc_lines.append(tagged_line)

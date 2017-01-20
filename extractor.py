@@ -97,7 +97,7 @@ class Extractor:
                 del self.resume_content[idx]
 
     def prepare_dataset(self):
-        self.populate_file_names(nr_of_files=1500)
+        self.populate_file_names(nr_of_files=1)
         self.read_resume_content()
         self.remove_empty_resumes()
         self.read_resume_labels()
