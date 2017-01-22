@@ -116,7 +116,7 @@ class CrfSuite:
 
     def word2features(self, line, token_idx, line_idx, doc_idx, doc_size):
         word = line[token_idx][0]
-        #postag = line[token_idx][1]
+        postag = line[token_idx][1]
         #nonlocalnertag = line[token_idx][2]
 
         """
@@ -143,6 +143,9 @@ class CrfSuite:
                 'word.idx': float(token_idx),
                 'line.idx': float(line_idx),
                 'line.size': float(len(line)),
+                'pos': postag,
+                'pos[-3:]': postag[-3:],
+                'pos[-2:]': postag[-2:],
                 #'word_idx': float(self.word2idx[word.lower()])
                 #"word_idx": self.model[word.lower()],
                 #"bigram_idx_count": self.bigram2idx[bigram],
@@ -163,13 +166,16 @@ class CrfSuite:
 
         if token_idx > 0:
             word1 = line[token_idx-1][0]
-            #postag1 = line[token_idx-1][1]
+            postag1 = line[token_idx-1][1]
             #nonlocalnertag1 = line[token_idx-1][2]
 
             #features['nl-1'] = self.nonlocal_ner_tag2idx[nonlocalnertag1]
             #features['p-1'] = self.pos_tag2idx[postag1]
             #features['word-1'] = float(self.word2idx[word1.lower()])
             features['word-1'] = word1.lower()
+            features['pos-1'] = postag1
+            features['pos[-3:]'] = postag1[-3:]
+            features['pos[-2:]'] = postag1[-2:]
             features['BOL'] = 0.0
             """
             features['word-1[-3:]'] = word1[-3:],
@@ -184,13 +190,16 @@ class CrfSuite:
 
         if token_idx < len(line)-1:
             word1 = line[token_idx+1][0]
-            #postag1 = line[token_idx+1][1]
+            postag1 = line[token_idx+1][1]
             #nonlocalnertag1 = line[token_idx+1][2]
 
             #features['nl+1'] = self.nonlocal_ner_tag2idx[nonlocalnertag1]
             #features['p+1'] = self.pos_tag2idx[postag1]
             #features['word+1'] = float(self.word2idx[word1.lower()])
             features['word+1'] = word1.lower()
+            features['pos+1'] = postag1
+            features['pos[-3:]'] = postag1[-3:]
+            features['pos[-2:]'] = postag1[-2:]
             features['EOL'] = 0.0
             """
             features['word+1[-3:]'] = word1[-3:],
@@ -225,9 +234,13 @@ class CrfSuite:
 
         if line_idx == 0:
             features['BOD'] = 1.0
+        else:
+            features['BOD'] = 0.0
 
         if line_idx == doc_size:
             features['EOD'] = 1.0
+        else:
+            features['EOD'] = 0.0
 
         """
         features = [
@@ -290,12 +303,12 @@ class CrfSuite:
 
     def sent2labels(self, sent):
         labels = []
-        for token, label in sent:
+        for token, pos_tag, label in sent:
             labels.append(label)
         return labels
 
     def sent2tokens(self, sent):
-        return [token for token, label in sent]
+        return [token for token, pos_tag, label in sent]
 
     def doc2features(self, doc_idx, doc):
         return [self.sent2features(doc[line_idx], line_idx, doc_idx, len(doc)-1) for line_idx in range(len(doc))]
@@ -329,9 +342,9 @@ class CrfSuite:
         print("pycrfsuite Trainer has data")
 
         trainer.set_params({
-            'c1': 0.001,   # coefficient for L1 penalty
-            'c2': 0.001,  # coefficient for L2 penalty
-            'max_iterations': 200,  # stop earlier
+            'c1': 0.01,   # coefficient for L1 penalty
+            'c2': 0.01,  # coefficient for L2 penalty
+            'max_iterations': 300,  # stop earlier
 
             # include transitions that are possible, but not observed
             'feature.possible_transitions': True

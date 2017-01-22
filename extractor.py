@@ -10,7 +10,7 @@ from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 
 class Extractor:
-    __dataset_raw_data_folder = "dataset_raw_data"
+    __dataset_raw_data_folder = "dataset_files"
     __file_path_seperator = "/"
 
     __file_ext_txt = ".txt"
@@ -19,6 +19,48 @@ class Extractor:
     __file_ext_doc = ".doc"
     __file_ext_docx = ".docx"
     __file_ext_msg = ".msg"
+
+    def get_edu_majors(self, label_set):
+        if not label_set.NewDataSet.Education:
+            return []
+
+        edu_major_list = []
+        Education = label_set.NewDataSet.Education
+        for course in Education:
+            if not course.edu_major:
+                continue
+            major = course.edu_major.cdata.strip()
+            edu_major_list.append(major)
+
+        return edu_major_list
+
+    def get_edu_institutions(self, label_set):
+        if not label_set.NewDataSet.Education:
+            return []
+
+        edu_inst_list = []
+        Education = label_set.NewDataSet.Education
+        for course in Education:
+            if not course.edu_inst_name:
+                continue
+            inst_name = course.edu_inst_name.cdata.strip()
+            edu_inst_list.append(inst_name)
+
+        return edu_inst_list
+
+    def get_company_names(self, label_set):
+        if not label_set.NewDataSet.Jobs:
+            return []
+
+        company_list = []
+        Jobs = label_set.NewDataSet.Jobs
+        for job in Jobs:
+            if not job.job_company_name:
+                continue
+            jc = job.job_company_name.cdata.strip()
+            company_list.append(jc)
+
+        return company_list
 
     def get_job_titles(self, label_set):
         if not label_set.NewDataSet.Jobs:
@@ -38,7 +80,7 @@ class Extractor:
         return self.__dataset_raw_data_folder
 
     # file names examples, nr_of_file: -1 is limitless
-    def populate_file_names(self, nr_of_files=-1):
+    def __populate_file_names(self, nr_of_files=-1):
         self.dataset_filenames = []
         counter = 0
         for filename in os.listdir(self.__dataset_raw_data_folder):
@@ -50,7 +92,7 @@ class Extractor:
                 if counter == nr_of_files and nr_of_files != -1:
                     break
 
-    def read_resume_content(self):
+    def __read_resume_content(self):
         # files share an index
         file_content = []
         file_metadata = []
@@ -66,7 +108,7 @@ class Extractor:
         self.resume_metadata = file_metadata
 
     # xml[0].NewDataSet.Profile.cn_fname.cdata.strip()
-    def read_resume_labels(self):
+    def __read_resume_labels(self):
         resume_labels = []
         for idx, filename in enumerate(self.dataset_filenames):
             filepath = self.__dataset_raw_data_folder + self.__file_path_seperator + filename[0] + self.__file_ext_xml
@@ -74,6 +116,20 @@ class Extractor:
             resume_labels.append(xml_file)
         self.resume_labels = resume_labels
 
+    def __remove_empty_resumes(self):
+        for idx, file_content in enumerate(self.resume_content):
+            if file_content is None:
+                del self.dataset_filenames[idx]
+                del self.resume_content[idx]
+
+    def read_raw_files(self, nr_of_docs):
+        self.__populate_file_names(nr_of_docs)
+        self.__read_resume_content()
+        self.__remove_empty_resumes()
+        self.__read_resume_labels()
+        return self.resume_content, self.resume_labels
+
+    """ TODO REMOVE
     def tokenise_content_by_line(self):
         for idx, file_content in enumerate(self.resume_content):
             self.resume_content[idx] = file_content.splitlines()
@@ -89,20 +145,16 @@ class Extractor:
                     filtered_words = [word for word in line if word not in stopwords.words('english')]
                     tokenized_doc_lines.append(filtered_words)
             self.resume_content[doc_idx] = tokenized_doc_lines
-
-    def remove_empty_resumes(self):
-        for idx, file_content in enumerate(self.resume_content):
-            if file_content is None:
-                del self.dataset_filenames[idx]
-                del self.resume_content[idx]
-
+    """
+    """ TODO: remove
     def prepare_dataset(self):
-        self.populate_file_names(nr_of_files=1)
+        self.populate_file_names()
         self.read_resume_content()
         self.remove_empty_resumes()
         self.read_resume_labels()
         self.tokenise_content_by_line()
         self.tokenise_content_by_words()
+        """
 
 """
 ner_words = nltk.ne_chunk(pos_words)

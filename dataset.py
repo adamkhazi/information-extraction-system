@@ -4,7 +4,7 @@ import csv
 import glob
 
 class Dataset:
-    __dataset_folder = "db_generated_datasets"
+    __dataset_folder = "dataset_files"
 
     resume_content = []
     resume_labels = []

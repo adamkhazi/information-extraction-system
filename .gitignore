@@ -95,8 +95,8 @@ ENV/
 general.cfg
 
 #dataset folders
-db_generated_datasets/*
-!db_generated_datasets/.gitkeep
+dataset_files/*
+!dataset_files/.gitkeep
 example_datasets/*
 !example_datasets/.gitkeep
 
