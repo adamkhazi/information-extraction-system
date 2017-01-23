@@ -10,7 +10,7 @@ from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 
 class Extractor:
-    __dataset_raw_data_folder = "dataset_files"
+    __dataset_raw_data_folder = "dataset_raw_data"
     __file_path_seperator = "/"
 
     __file_ext_txt = ".txt"

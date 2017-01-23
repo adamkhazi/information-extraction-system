@@ -1,4 +1,5 @@
 import sys
+import pdb
 
 from generate_dataset import GenerateDataset
 from crf_suite import CrfSuite
@@ -12,7 +13,7 @@ def main():
         train_model()
     elif sys.argv[1] == __argument_annotate_dataset:
         if len(sys.argv) > 2:
-            annotate_data(int(sys.argv[2]))
+            annotate_data(nr_docs=int(sys.argv[2]))
         else:
             annotate_data()
     else:

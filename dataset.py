@@ -4,6 +4,7 @@ import csv
 import glob
 
 class Dataset:
+    # saves and read annotated files to this folder
     __dataset_folder = "dataset_files"
 
     resume_content = []
