@@ -96,7 +96,6 @@ class Extractor:
                 filename, file_ext = os.path.splitext(filename)
                 self.dataset_filenames.append((filename, file_ext))
                 counter += 1
-                print(filename)
                 if counter == nr_of_files and nr_of_files != -1:
                     break
 
@@ -115,7 +114,6 @@ class Extractor:
         self.resume_content = file_content
         self.resume_metadata = file_metadata
 
-    # xml[0].NewDataSet.Profile.cn_fname.cdata.strip()
     def __read_resume_labels(self):
         resume_labels = []
         for idx, filename in enumerate(self.dataset_filenames):
@@ -136,6 +134,13 @@ class Extractor:
         self.__remove_empty_resumes()
         self.__read_resume_labels()
         return self.resume_content, self.resume_labels
+
+    def read_resume_content(self, filepath):
+        extracted_information = parser.from_file(filepath)
+        docs = []
+        docs.append(extracted_information["content"])
+        return docs
+
 
     """ TODO REMOVE
     def tokenise_content_by_line(self):

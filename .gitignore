@@ -100,6 +100,10 @@ dataset_files/*
 example_datasets/*
 !example_datasets/.gitkeep
 
+# web upload folder
+web/uploads/*
+!web/uploads/.gitkeep
+
 # trained models
 pre_trained_models/*
 

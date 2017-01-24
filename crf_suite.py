@@ -21,6 +21,8 @@ class CrfSuite:
     __pre_trained_models_folder = "pre_trained_models"
     __google_news_word2vec = "GoogleNews-vectors-negative300.bin.gz"
 
+    __default_ner_tag = "O"
+
     # pre-trained embeddings
     def load_embeddings(self):
         logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
@@ -364,6 +366,28 @@ class CrfSuite:
         class_indices = {cls: idx for idx, cls in enumerate(lb.classes_)}
 
         return classification_report(y_true_combined, y_pred_combined, labels = [class_indices[cls] for cls in tagset], target_names = tagset)
+
+    def load_tagger(self):
+        self.__trained_tagger = pycrfsuite.Tagger()
+        self.__trained_tagger.open('test_NER.crfsuite')
+
+    # doc: in format of tagged tuples
+    def tag_doc(self, doc):
+        xseq = []
+        for line_idx, line in enumerate(doc):
+            for token_idx, token in enumerate(line):
+                xseq.append(token)
+
+        predicted_tags = self.__trained_tagger.tag(xseq)
+        return self.interpret_predicted_tags(doc, predicted_tags)
+
+    def interpret_predicted_tags(self, doc, tags):
+        identified_entities = []
+        for token_idx, token in enumerate(doc):
+            if tags[token_idx] != self.__default_ner_tag:
+                identified_entities.append((token[0], tags[token_idx]))
+
+        return identified_entities
 
     def test_model(self):
         #predictions

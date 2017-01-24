@@ -61,3 +61,17 @@ class Annotator():
         for entity in entity_list:
             doc = self.__tagger.match_label(doc, entity, tag)
         return doc
+
+    # function takes in a path to file and annotates it for tagging
+    # to be ideally used to tag as a one off for testing
+    # filepath: path to résumé 
+    def annotate_using_trained_model(self, filepath):
+        resume_content = self.__extractor.read_resume_content(filepath)
+
+        resume_content = self.__tokeniser.tokenise_docs_to_lines(resume_content)
+        resume_content = self.__tokeniser.tokenise_doclines_to_words(resume_content)
+
+        prepared_doc = self.__tagger.prepare_doc(resume_content[0])
+        prepared_doc = self.__tagger.pos_tag(prepared_doc)
+
+        return prepared_doc
