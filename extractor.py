@@ -21,13 +21,17 @@ class Extractor:
     __file_ext_msg = ".msg"
 
     def get_edu_majors(self, label_set):
-        if not label_set.NewDataSet.Education:
+        try:
+            label_set.NewDataSet.Education
+        except IndexError:
             return []
 
         edu_major_list = []
         Education = label_set.NewDataSet.Education
         for course in Education:
-            if not course.edu_major:
+            try:
+                course.edu_major
+            except IndexError:
                 continue
             major = course.edu_major.cdata.strip()
             edu_major_list.append(major)
@@ -35,13 +39,17 @@ class Extractor:
         return edu_major_list
 
     def get_edu_institutions(self, label_set):
-        if not label_set.NewDataSet.Education:
+        try:
+            label_set.NewDataSet.Education
+        except IndexError:
             return []
 
         edu_inst_list = []
         Education = label_set.NewDataSet.Education
         for course in Education:
-            if not course.edu_inst_name:
+            try:
+                course.edu_inst_name
+            except IndexError:
                 continue
             inst_name = course.edu_inst_name.cdata.strip()
             edu_inst_list.append(inst_name)
@@ -84,7 +92,7 @@ class Extractor:
         self.dataset_filenames = []
         counter = 0
         for filename in os.listdir(self.__dataset_raw_data_folder):
-            if filename.endswith(self.__file_ext_pdf) or filename.endswith(self.__file_ext_doc) or filename.endswith(self.__file_ext_docx) or filename.endswith(self.__file_ext_msg) :
+            if filename.endswith(self.__file_ext_pdf) or filename.endswith(self.__file_ext_doc) or filename.endswith(self.__file_ext_docx):
                 filename, file_ext = os.path.splitext(filename)
                 self.dataset_filenames.append((filename, file_ext))
                 counter += 1
