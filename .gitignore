@@ -45,6 +45,9 @@ coverage.xml
 *,cover
 .hypothesis/
 
+# w2v model
+generated_w2v_model
+
 # Translations
 *.mo
 *.pot

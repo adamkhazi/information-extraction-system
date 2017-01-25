@@ -25,7 +25,7 @@ class API():
         self.__app.add_url_rule("/", "index", self.handle_welcome)
         self.__app.add_url_rule("/uploads/<filename>", "uploaded_file", self.uploaded_file)
         self.__app.add_url_rule("/resume2entity", "IE", self.handle_resume_post, methods=['GET', 'POST',])
-        self.__app.run(debug=True)
+        self.__app.run(host='0.0.0.0', debug=True)
 
     def handle_welcome(self):
         return render_template('%s.html' % self.__path_to_welcome)

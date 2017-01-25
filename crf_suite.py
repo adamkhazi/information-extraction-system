@@ -23,6 +23,8 @@ class CrfSuite:
 
     __default_ner_tag = "O"
 
+    __w2v_model_name = "generated_w2v_model"
+
     # pre-trained embeddings
     def load_embeddings(self):
         logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
@@ -43,6 +45,7 @@ class CrfSuite:
                 all_lines[line_idx][token_idx] = token[0].lower()
 
         self.w2v_model = word2vec.Word2Vec(all_lines, size=30, iter=10)
+        self.w2v_model.save(self.__w2v_model_name)
 
     # n-gram generation
     def encode_dataset(self):
@@ -371,21 +374,27 @@ class CrfSuite:
         self.__trained_tagger = pycrfsuite.Tagger()
         self.__trained_tagger.open('test_NER.crfsuite')
 
+        self.w2v_model = word2vec.Word2Vec.load(self.__w2v_model_name)
+
     # doc: in format of tagged tuples
     def tag_doc(self, doc):
+        feature_input = [self.doc2features(doc_idx, d) for doc_idx, d in enumerate([doc])]
         xseq = []
-        for line_idx, line in enumerate(doc):
+        for line_idx, line in enumerate(feature_input[0]):
             for token_idx, token in enumerate(line):
                 xseq.append(token)
 
         predicted_tags = self.__trained_tagger.tag(xseq)
-        return self.interpret_predicted_tags(doc, predicted_tags)
+
+        return self.interpret_predicted_tags(xseq, predicted_tags)
 
     def interpret_predicted_tags(self, doc, tags):
         identified_entities = []
+        print(str(len(doc)))
+        print(str(len(tags)))
         for token_idx, token in enumerate(doc):
             if tags[token_idx] != self.__default_ner_tag:
-                identified_entities.append((token[0], tags[token_idx]))
+                identified_entities.append((doc[token_idx]['word'], tags[token_idx]))
 
         return identified_entities
 
