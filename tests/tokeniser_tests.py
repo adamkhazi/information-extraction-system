@@ -7,7 +7,6 @@ from tokeniser import Tokeniser
 class TokeniserTests(unittest.TestCase):
     def test_tokenise_lines(self):
         tokeniser = Tokeniser()
-
         # each slot is résumé plain text
         input_docs = ["sample resume output\rsample resume output",
                 "\rsample resume output\rsample resume output",
@@ -21,7 +20,6 @@ class TokeniserTests(unittest.TestCase):
                 ["", "sample resume output", "sample resume output"]]
 
         output = tokeniser.tokenise_docs_to_lines(input_docs)
-
         self.assertEqual(output, correct_output)
 
     def test_tokenise_words(self):
@@ -40,6 +38,5 @@ class TokeniserTests(unittest.TestCase):
                 ]]
 
         output = tokeniser.tokenise_doclines_to_words(input_lines)
-
         self.assertEqual(output, correct_output)
 

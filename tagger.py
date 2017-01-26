@@ -86,6 +86,8 @@ class Tagger:
             start_idx += list_len
         return doc_list
 
+    # takes tokens and adds pos tags
+    # doc: is a prepared token list with doc structure
     def pos_tag(self, doc):
         copy_doc = copy.deepcopy(doc)
         plain_doc = self.tuple_to_plain(copy_doc)
