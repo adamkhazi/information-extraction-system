@@ -60,5 +60,3 @@ class API():
     # show file in browser
     def uploaded_file(self, filename):
         return send_from_directory(self.__app.config['UPLOAD_FOLDER'], filename)
-
-    #if __name__ == '__main__':
