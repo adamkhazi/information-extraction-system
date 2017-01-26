@@ -1,0 +1,27 @@
+for (file in file_list){
+    # if the merged dataset doesn't exist, create it
+    if (!exists("dataset")){
+	unnamed_ds = read.table(file, header=FALSE, sep="\t")
+	colnames(unnamed_ds) <- NULL
+        dataset <- unnamed_ds
+    }
+    
+    # if the merged dataset does exist, append to it
+    if (exists("dataset")){
+        temp_dataset <- read.table(file, header=FALSE, sep="\t")
+	temp_dataset <- unname(temp_dataset)
+	dataset<-unlist(temp_dataset)
+        rm(temp_dataset)
+    }
+}
+
+
+dataset <- NULL
+files = dir()
+for (name in files) {
+	temp_dataset <- read.table(name, header=FALSE, sep="\t")
+	colnames(temp_dataset) <- NULL
+	dataset <- append(dataset, list(temp_dataset))
+}
+
+dataset =rbindlist(dataset)

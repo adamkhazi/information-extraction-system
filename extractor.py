@@ -141,34 +141,6 @@ class Extractor:
         docs.append(extracted_information["content"])
         return docs
 
-
-    """ TODO REMOVE
-    def tokenise_content_by_line(self):
-        for idx, file_content in enumerate(self.resume_content):
-            self.resume_content[idx] = file_content.splitlines()
-
-    # tokenise and filter stop words
-    def tokenise_content_by_words(self):
-        rtokenizer = RegexpTokenizer(r'\w+')
-        for doc_idx, doc in enumerate(self.resume_content):
-            tokenized_doc_lines = []
-            for line_idx, line in enumerate(doc):
-                line = rtokenizer.tokenize(line)
-                if line != []:
-                    filtered_words = [word for word in line if word not in stopwords.words('english')]
-                    tokenized_doc_lines.append(filtered_words)
-            self.resume_content[doc_idx] = tokenized_doc_lines
-    """
-    """ TODO: remove
-    def prepare_dataset(self):
-        self.populate_file_names()
-        self.read_resume_content()
-        self.remove_empty_resumes()
-        self.read_resume_labels()
-        self.tokenise_content_by_line()
-        self.tokenise_content_by_words()
-        """
-
 """
 ner_words = nltk.ne_chunk(pos_words)
 print(ner_words)
