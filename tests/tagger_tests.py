@@ -17,3 +17,15 @@ class TaggerTests(unittest.TestCase):
         output = tagger.pos_tag(input)
 
         self.assertEqual(output, correct_output)
+
+    def test_nonlocal_ner_tag(self):
+        tagger = Tagger()
+
+        input =  [[("this", "", "", ""), ("is", "", "", ""), ("a", "", "", ""), ("test", "", "", "")],
+            [("this", "", "", ""), ("is", "", "", ""), ("a", "", "", ""), ("test", "", "", "")]]
+
+        correct_output = [[("this", "O", "", ""), ("is", "O", "", ""), ("a", "O", "", ""), ("test", "O", "", "")],
+                [("this", "O", "", ""), ("is", "O", "", ""), ("a", "O", "", ""), ("test", "O", "", "")]]
+
+        output = tagger.nonlocal_ner_tag(input)
+        self.assertEqual(output, correct_output)

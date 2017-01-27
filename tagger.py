@@ -12,6 +12,7 @@ class Tagger:
     __empty_string = ""
 
     __pos_tag_tuple_idx = 1
+    __nonlocal_ne_tag_tuple_idx = 2
     __ner_tag_tuple_idx = 3
 
     # TODO
@@ -113,3 +114,33 @@ class Tagger:
         tuple = (original_tuple[0], new_tag, original_tuple[2], original_tuple[3])
         return tuple
 
+    def nonlocal_ner_tag(self, doc):
+        home = expanduser("~")
+        os.environ['CLASSPATH'] = home + '/stanford-ner-2015-12-09'
+        os.environ['STANFORD_MODELS'] = home + '/stanford-ner-2015-12-09/classifiers'
+
+        st = StanfordNERTagger("english.all.3class.distsim.crf.ser.gz", java_options='-mx4000m')
+
+        stanford_dir = st._stanford_jar[0].rpartition('/')[0]
+        stanford_jars = find_jars_within_path(stanford_dir)
+        st._stanford_jar = ':'.join(stanford_jars)
+
+        # do not tokenise text
+        nltk.internals.config_java(options='-tokenizerFactory edu.stanford.nlp.process.WhitespaceTokenizer -tokenizerOptions "tokenizeNLs=true"')
+
+        copy_doc = copy.deepcopy(doc)
+        plain_doc = self.tuple_to_plain(copy_doc)
+
+        tagged_doc = st.tag_sents(plain_doc)
+        doc = self.add_nonlocal_ner_tags(tagged_doc, doc)
+
+    def add_nonlocal_ner_tags(self, nonlocal_ner_doc, original_doc):
+        for line_idx, line in enumerate(original_doc):
+            for token_idx, token in enumerate(line):
+                new_nonlocal_ne_tag = nonlocal_ner_doc[line_idx][token_idx][self.__nonlocal_ne_tag_tuple_idx]
+                original_doc[line_idx][token_idx] = self.replace_nonlocal_ne_tag(original_doc[line_idx][token_idx], new_nonlocal_ne_tag)
+        return original_doc
+
+    def replace_nonlocal_ne_tag(self, original_tuple, new_tag):
+        tuple = (original_tuple[0], original_tuple[1], new_tag, original_tuple[3])
+        return tuple
