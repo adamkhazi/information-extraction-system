@@ -33,7 +33,6 @@ class API():
     def handle_resume_post(self):
         # Get the name of the uploaded file
         file = request.files['file']
-        print("hit handle method resume post")
 
         if file and self.__allowed_file(file.filename):
             # Save file to upload folder
@@ -50,7 +49,6 @@ class API():
             response.headers['Content-Type'] = 'application/xml'
 
             return response
-            #return redirect(url_for('uploaded_file', filename=file.filename))
 
     # For a given file, return whether it's an allowed type or not
     def __allowed_file(self, filename):

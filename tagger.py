@@ -132,7 +132,7 @@ class Tagger:
         plain_doc = self.tuple_to_plain(copy_doc)
 
         tagged_doc = st.tag_sents(plain_doc)
-        doc = self.add_nonlocal_ner_tags(tagged_doc, doc)
+        return self.add_nonlocal_ner_tags(tagged_doc, doc)
 
     def add_nonlocal_ner_tags(self, nonlocal_ner_doc, original_doc):
         for line_idx, line in enumerate(original_doc):
