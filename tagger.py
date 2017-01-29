@@ -2,8 +2,13 @@ import untangle
 import pdb
 import nltk
 import copy
+import os
 
+from os.path import expanduser
 from nltk.tokenize import RegexpTokenizer
+from nltk.tag import StanfordNERTagger
+from nltk.internals import find_jars_within_path
+from nltk.corpus import stopwords
 
 class Tagger:
     __outside_tag = "O"
@@ -35,6 +40,7 @@ class Tagger:
         rtokenizer = RegexpTokenizer(r'\w+')
         label_str = label_str.lower() #lowercase for comparison
         label_str = rtokenizer.tokenize(label_str)
+        label_str = [word for word in label_str if word not in stopwords.words('english')]
         label_str_len = len(label_str)
 
         idx = max(0, label_str_len-1)
@@ -137,7 +143,7 @@ class Tagger:
     def add_nonlocal_ner_tags(self, nonlocal_ner_doc, original_doc):
         for line_idx, line in enumerate(original_doc):
             for token_idx, token in enumerate(line):
-                new_nonlocal_ne_tag = nonlocal_ner_doc[line_idx][token_idx][self.__nonlocal_ne_tag_tuple_idx]
+                new_nonlocal_ne_tag = nonlocal_ner_doc[line_idx][token_idx][1]
                 original_doc[line_idx][token_idx] = self.replace_nonlocal_ne_tag(original_doc[line_idx][token_idx], new_nonlocal_ne_tag)
         return original_doc
 

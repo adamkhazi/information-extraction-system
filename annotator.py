@@ -51,7 +51,7 @@ class Annotator():
         prepared_doc = self.__match_entity(prepared_doc, edu_inst_list, self.__education_institution_tag)
 
         prepared_doc = self.__tagger.pos_tag(prepared_doc)
-        prepared_doc = self.__tagger.nonlocal_ne_tag(prepared_doc)
+        prepared_doc = self.__tagger.nonlocal_ner_tag(prepared_doc)
 
         return prepared_doc
 
