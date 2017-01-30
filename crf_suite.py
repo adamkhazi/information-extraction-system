@@ -122,7 +122,7 @@ class CrfSuite:
     def word2features(self, line, token_idx, line_idx, doc_idx, doc_size):
         word = line[token_idx][0]
         postag = line[token_idx][1]
-        #nonlocalnertag = line[token_idx][2]
+        nonlocalnertag = line[token_idx][2]
 
         """
         bigram = ''
@@ -151,6 +151,7 @@ class CrfSuite:
                 'pos': postag,
                 'pos[-3:]': postag[-3:],
                 'pos[-2:]': postag[-2:],
+                'nonlocalner': nonlocalnertag
                 #'word_idx': float(self.word2idx[word.lower()])
                 #"word_idx": self.model[word.lower()],
                 #"bigram_idx_count": self.bigram2idx[bigram],
@@ -172,50 +173,73 @@ class CrfSuite:
         if token_idx > 0:
             word1 = line[token_idx-1][0]
             postag1 = line[token_idx-1][1]
-            #nonlocalnertag1 = line[token_idx-1][2]
+            nonlocalnertag1 = line[token_idx-1][2]
 
             #features['nl-1'] = self.nonlocal_ner_tag2idx[nonlocalnertag1]
             #features['p-1'] = self.pos_tag2idx[postag1]
             #features['word-1'] = float(self.word2idx[word1.lower()])
             features['word-1'] = word1.lower()
             features['pos-1'] = postag1
+            features['posbigram-1'] = postag1 + postag
             features['pos[-3:]'] = postag1[-3:]
             features['pos[-2:]'] = postag1[-2:]
+            features['bigram-1'] = word1.lower() + word.lower()
             features['BOL'] = 0.0
+            features['word-1.isupper'] = word1.isupper()
+            features['word-1.istitle'] = word1.istitle()
+            features['word-1.isdigit'] = word1.isdigit()
+            #features['nonlocalner-1'] = nonlocalnertag1 
             """
             features['word-1[-3:]'] = word1[-3:],
             features['word-1[-2:]'] = word1[-2:],
-            features['word-1.isupper'] = word1.isupper(),
-            features['word-1.istitle'] = word1.istitle(),
-            features['word-1.isdigit'] = word1.isdigit(),
             features['word-1.idx']= float(token_idx-1)
             """
         else:
+            features['bigram-1'] = "BOL" + word.lower()
             features['BOL'] = 1.0
 
         if token_idx < len(line)-1:
             word1 = line[token_idx+1][0]
             postag1 = line[token_idx+1][1]
-            #nonlocalnertag1 = line[token_idx+1][2]
+            nonlocalnertag1 = line[token_idx+1][2]
 
             #features['nl+1'] = self.nonlocal_ner_tag2idx[nonlocalnertag1]
             #features['p+1'] = self.pos_tag2idx[postag1]
             #features['word+1'] = float(self.word2idx[word1.lower()])
             features['word+1'] = word1.lower()
             features['pos+1'] = postag1
+            features['posbigram+1'] = postag + postag1
             features['pos[-3:]'] = postag1[-3:]
             features['pos[-2:]'] = postag1[-2:]
+            features['bigram+1'] = word.lower() + word1.lower()
             features['EOL'] = 0.0
+            features['word+1.isupper'] = word1.isupper()
+            features['word+1.istitle'] = word1.istitle()
+            features['word+1.isdigit'] = word1.isdigit()
+            #features['nonlocalner+1'] = nonlocalnertag1 
             """
             features['word+1[-3:]'] = word1[-3:],
             features['word+1[-2:]'] = word1[-2:],
-            features['word+1.isupper'] = word1.isupper(),
-            features['word+1.istitle'] = word1.istitle(),
-            features['word+1.isdigit'] = word1.isdigit(),
             features['word+1.idx']= float(token_idx+1)
             """
         else:
+            features['bigram+1'] = word.lower() + "EOL"
             features['EOL'] = 1.0
+
+        if token_idx > 0 and token_idx < len(line)-1:
+            word1behind = line[token_idx-1][0]
+            word1ahead = line[token_idx+1][0]
+            features['trigram-1+1'] = word1behind.lower() + word.lower() + word1ahead.lower()
+
+        if token_idx < len(line)-2:
+            word1ahead = line[token_idx+1][0]
+            word2ahead = line[token_idx+2][0]
+            #features['trigram+2'] = word.lower() + word1ahead.lower() + word2ahead.lower()
+
+        if token_idx > 1:
+            word1behind = line[token_idx-1][0]
+            word2behind = line[token_idx-2][0]
+            #features['trigram-2'] =  word2behind.lower() + word1behind.lower() + word.lower()
 
         """
         if token_idx > 1:
@@ -308,12 +332,12 @@ class CrfSuite:
 
     def sent2labels(self, sent):
         labels = []
-        for token, pos_tag, label in sent:
+        for token, pos_tag, nonlocalne, label in sent:
             labels.append(label)
         return labels
 
     def sent2tokens(self, sent):
-        return [token for token, pos_tag, label in sent]
+        return [token for token, pos_tag, nonlocalne, label in sent]
 
     def doc2features(self, doc_idx, doc):
         return [self.sent2features(doc[line_idx], line_idx, doc_idx, len(doc)-1) for line_idx in range(len(doc))]
@@ -336,19 +360,16 @@ class CrfSuite:
         trainer = pycrfsuite.Trainer(verbose=True)
         print("pycrfsuite Trainer init")
 
+        # transform data structure to group tokens by lines
         for doc_x, doc_y in zip(self.X_train, self.y_train):
-            xseq = []
-            yseq = []
             for line_idx, line in enumerate(doc_x):
-                for token_idx, token in enumerate(line):
-                    xseq.append(token)
-                    yseq.append(doc_y[line_idx][token_idx])
-            trainer.append(xseq, yseq)
+                trainer.append(line, doc_y[line_idx])
+
         print("pycrfsuite Trainer has data")
 
         trainer.set_params({
-            'c1': 0.01,   # coefficient for L1 penalty
-            'c2': 0.01,  # coefficient for L2 penalty
+            'c1': 0.1,   # coefficient for L1 penalty
+            'c2': 0.1,  # coefficient for L2 penalty
             'max_iterations': 300,  # stop earlier
 
             # include transitions that are possible, but not observed

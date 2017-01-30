@@ -10,6 +10,8 @@ from nltk.tag import StanfordNERTagger
 from nltk.internals import find_jars_within_path
 from nltk.corpus import stopwords
 
+from logger import Logger
+
 class Tagger:
     __outside_tag = "O"
     __begin_tag_prefix = "B-"
@@ -19,6 +21,13 @@ class Tagger:
     __pos_tag_tuple_idx = 1
     __nonlocal_ne_tag_tuple_idx = 2
     __ner_tag_tuple_idx = 3
+
+    def __init__(self):
+        logger = Logger()
+        logger.println("tagger created")
+
+        # setup st tagger once so pickle file not reloaded
+        self.setup_nonlocal_tagger()
 
     # TODO
     def get_job_titles(xml):
@@ -120,24 +129,25 @@ class Tagger:
         tuple = (original_tuple[0], new_tag, original_tuple[2], original_tuple[3])
         return tuple
 
-    def nonlocal_ner_tag(self, doc):
+    def setup_nonlocal_tagger(self):
         home = expanduser("~")
         os.environ['CLASSPATH'] = home + '/stanford-ner-2015-12-09'
         os.environ['STANFORD_MODELS'] = home + '/stanford-ner-2015-12-09/classifiers'
 
-        st = StanfordNERTagger("english.all.3class.distsim.crf.ser.gz", java_options='-mx4000m')
+        self.__stanford_tagger = StanfordNERTagger("english.all.3class.distsim.crf.ser.gz", java_options='-mx4000m')
 
-        stanford_dir = st._stanford_jar[0].rpartition('/')[0]
+        stanford_dir = self.__stanford_tagger._stanford_jar[0].rpartition('/')[0]
         stanford_jars = find_jars_within_path(stanford_dir)
-        st._stanford_jar = ':'.join(stanford_jars)
+        self.__stanford_tagger._stanford_jar = ':'.join(stanford_jars)
 
+    def nonlocal_ner_tag(self, doc):
         # do not tokenise text
         nltk.internals.config_java(options='-tokenizerFactory edu.stanford.nlp.process.WhitespaceTokenizer -tokenizerOptions "tokenizeNLs=true"')
 
         copy_doc = copy.deepcopy(doc)
         plain_doc = self.tuple_to_plain(copy_doc)
 
-        tagged_doc = st.tag_sents(plain_doc)
+        tagged_doc = self.__stanford_tagger.tag_sents(plain_doc)
         return self.add_nonlocal_ner_tags(tagged_doc, doc)
 
     def add_nonlocal_ner_tags(self, nonlocal_ner_doc, original_doc):
