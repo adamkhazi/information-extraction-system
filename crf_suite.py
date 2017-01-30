@@ -351,6 +351,10 @@ class CrfSuite:
             'c2': 0.01,  # coefficient for L2 penalty
             'max_iterations': 300,  # stop earlier
 
+            # include states features that do not even occur in the training
+            # data, crfsuite creates all possible associations between
+            # attirbutes and labels - enabling improves label accuracy
+            'feature.possible_states': True,
             # include transitions that are possible, but not observed
             'feature.possible_transitions': True
         })
@@ -386,6 +390,8 @@ class CrfSuite:
 
         predicted_tags = self.__trained_tagger.tag(xseq)
 
+        # TODO change this to take in doc and not xseq (convert predicted tags
+        # to the structure of doc)
         return self.interpret_predicted_tags(xseq, predicted_tags)
 
     def interpret_predicted_tags(self, doc, tags):
