@@ -83,9 +83,6 @@ class CrfSuite(Tags):
         self.test_sents = self.total_sents[split_point+1:]
         print("Split dataset")
 
-    def first_letter_upper(self, token):
-        return token[0].isupper()
-
     def word2features(self, line, token_idx, line_idx, doc_idx, doc_size):
         word = line[token_idx][0]
         postag = line[token_idx][1]
@@ -125,7 +122,6 @@ class CrfSuite(Tags):
             features['pos[-3:]'] = postag1[-3:]
             features['pos[-2:]'] = postag1[-2:]
             features['bigram-1'] = word1.lower() + word.lower()
-            features['BOL'] = 0.0
             features['word-1.isupper'] = word1.isupper()
             features['word-1.istitle'] = word1.istitle()
             features['word-1.isdigit'] = word1.isdigit()
@@ -141,25 +137,17 @@ class CrfSuite(Tags):
             postag1 = line[token_idx+1][1]
             nonlocalnertag1 = line[token_idx+1][2]
 
-            #features['nl+1'] = self.nonlocal_ner_tag2idx[nonlocalnertag1]
-            #features['p+1'] = self.pos_tag2idx[postag1]
-            #features['word+1'] = float(self.word2idx[word1.lower()])
             features['word+1'] = word1.lower()
             features['pos+1'] = postag1
             features['posbigram+1'] = postag + postag1
             features['pos[-3:]'] = postag1[-3:]
             features['pos[-2:]'] = postag1[-2:]
             features['bigram+1'] = word.lower() + word1.lower()
-            features['EOL'] = 0.0
             features['word+1.isupper'] = word1.isupper()
             features['word+1.istitle'] = word1.istitle()
             features['word+1.isdigit'] = word1.isdigit()
-            #features['nonlocalner+1'] = nonlocalnertag1 
-            """
-            features['word+1[-3:]'] = word1[-3:],
-            features['word+1[-2:]'] = word1[-2:],
-            features['word+1.idx']= float(token_idx+1)
-            """
+            features['word+1[-3:]'] = word1[-3:]
+            features['word+1[-2:]'] = word1[-2:]
         else:
             features['bigram+1'] = word.lower() + "EOL"
             features['EOL'] = 1.0
@@ -168,8 +156,6 @@ class CrfSuite(Tags):
             word1behind = line[token_idx-1][0]
             word1ahead = line[token_idx+1][0]
             features['trigram-1+1'] = word1behind.lower() + word.lower() + word1ahead.lower()
-
-        #features['trigram-2'] =  word2behind.lower() + word1behind.lower() + word.lower()
 
         if line_idx == 0:
             features['BOD'] = 1.0
