@@ -1,7 +1,4 @@
-from itertools import chain
 import nltk
-from sklearn.metrics import classification_report, confusion_matrix
-from sklearn.preprocessing import LabelBinarizer
 import sklearn
 import pycrfsuite
 import csv
@@ -11,13 +8,18 @@ import time
 import logging
 import copy
 import gensim
+
+from itertools import chain
+from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.preprocessing import LabelBinarizer
 from gensim.models import word2vec
 
 from generate_dataset import GenerateDataset
 from dataset import Dataset
 from logger import Logger
+from tags import Tags
 
-class CrfSuite:
+class CrfSuite(Tags):
     __seperator = "/"
     __pre_trained_models_folder = "pre_trained_models"
     __google_news_word2vec = "GoogleNews-vectors-negative300.bin.gz"
@@ -271,11 +273,17 @@ class CrfSuite:
 
     def interpret_predicted_tags(self, doc, tags):
         identified_entities = []
-        print(str(len(doc)))
-        print(str(len(tags)))
-        for token_idx, token in enumerate(doc):
-            if tags[token_idx] != self.__default_ner_tag:
-                identified_entities.append((doc[token_idx]['word'], tags[token_idx]))
+        for tag_idx, tag in enumerate(tags):
+            if tag in Tags.__start_tagset:
+
+                entity_found = ""
+                while True:
+                    if tags[tag_idx] == Tags.__outside_tag:
+                        break
+                    entity_found = entity_found + " " + doc[token_idx]['word']
+                    tag_idx += 1
+
+                identified_entities.append(entity_found, tags[token_idx])
 
         return identified_entities
 
@@ -321,62 +329,3 @@ class CrfSuite:
 
         print("Test set:")
         print(self.basic_classification_report(docs_y_test_true, y_pred))
-
-
-"""
-print("printint last iteration")
-print(trainer.logparser.last_iteration)
-
-print(str(len(trainer.logparser.iterations)) + ", " +
-        str(trainer.logparser.iterations[-1]))
-
-#predictions
-tagger = pycrfsuite.Tagger()
-tagger.open('test_NER.crfsuite')
-
-# example tag
-example_sent = test_sents[0]
-print(' '.join(sent2tokens(example_sent)), end='\n\n')
-
-print("Predicted:", ' '.join(tagger.tag(sent2features(example_sent))))
-print("Correct:  ", ' '.join(sent2labels(example_sent)))
-
-    #evaluate model
-    def bio_classification_report(y_true, y_pred):
-
-        
-        Classification report for a list of BIO-encoded sequences.
-        It computes token-level metrics and discards "O" labels.
-        
-        Note that it requires scikit-learn 0.15+ (or a version from github master)
-        to calculate averages properly!
-       
-
-        lb = LabelBinarizer()
-        y_true_combined = lb.fit_transform(list(chain.from_iterable(y_true)))
-        y_pred_combined = lb.transform(list(chain.from_iterable(y_pred)))
-            
-        tagset = set(lb.classes_) - {'O'}
-        tagset = sorted(tagset, key=lambda tag: tag.split('-', 1)[::-1])
-        class_indices = {cls: idx for idx, cls in enumerate(lb.classes_)}
-        
-        return classification_report(
-            y_true_combined,
-            y_pred_combined,
-            labels = [class_indices[cls] for cls in tagset],
-            target_names = tagset,
-        )
-
-y_pred = [tagger.tag(xseq) for xseq in X_test]
-
-def basic_classification_report(y_true, y_pred):
-    lb = LabelBinarizer()
-    y_true_combined = lb.fit_transform(list(chain.from_iterable(y_true)))
-    y_pred_combined = lb.transform(list(chain.from_iterable(y_pred)))
-
-    return classification_report(y_true_combined, y_pred_combined)
-
-print(basic_classification_report(y_test, y_pred))
-
-#print(bio_classification_report(y_test, y_pred))
-"""
