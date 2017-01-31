@@ -15,6 +15,7 @@ from gensim.models import word2vec
 
 from generate_dataset import GenerateDataset
 from dataset import Dataset
+from logger import Logger
 
 class CrfSuite:
     __seperator = "/"
@@ -50,59 +51,23 @@ class CrfSuite:
     # n-gram generation
     def encode_dataset(self):
         self.word2idx = {}
-        self.pos_tag2idx = {}
-        self.nonlocal_ner_tag2idx = {}
-        self.ner_tag2idx = {}
-
+        self.word2count = {}
         self.word_idx = 0
-        #self.pos_tag_idx = 0
-        #self.nonlocal_ner_tag_idx = 0
-        self.tag_idx = 0
 
         for doc_idx, doc in enumerate(self.total_sents):
             for line_idx, line in enumerate(doc):
                 for token_idx, token in enumerate(line):
                     word = token[0].lower()
-                    #pos_tag = token[1]
-                    #nonlocal_ner_tag = token[2]
-                    ner_tag = token[1]
 
                     if word not in self.word2idx:
                         self.word2idx[word] = self.word_idx
+                        self.word2count[word] = 1
                         self.word_idx += 1
-                    """
-                    if pos_tag not in self.pos_tag2idx:
-                        self.pos_tag2idx[pos_tag] = self.pos_tag_idx
-                        self.pos_tag_idx += 1
-                    if nonlocal_ner_tag not in self.nonlocal_ner_tag2idx:
-                        self.nonlocal_ner_tag2idx[nonlocal_ner_tag] = self.nonlocal_ner_tag_idx
-                        self.nonlocal_ner_tag_idx += 1
-                        """
-                    if ner_tag not in self.ner_tag2idx:
-                        self.ner_tag2idx[ner_tag] = self.tag_idx
-                        self.tag_idx += 1
-
-        """
-        self.bigram2idx = {}
-        self.bigram_idx = 0
-
-        for doc_idx, doc in enumerate(self.total_sents):
-            bigram_prev_word = "START"
-            for line_idx, line in enumerate(doc):
-                for token_idx, token in enumerate(line):
-                    current_word = token[0].lower()
-                    bigram = bigram_prev_word + ' ' + current_word
-                    bigram_prev_word = current_word
-                    if bigram in self.bigram2idx:
-                        self.bigram2idx[bigram] += 1
                     else:
-                        self.bigram2idx[bigram] = 1
-                    if bigram not in self.bigram2idx:
-                        self.bigram2idx[bigram] = self.bigram_idx
-                        self.bigram_idx += 1
-                        """
+                        self.word2count[word] += 1
+
+
         print("encode_dataset: " + str(self.word_idx) + " unique words")
-        #print("encode_dataset: " + str(self.bigram_idx) + " unique bigrams")
 
     def get_dataset(self):
         dataset = Dataset()
@@ -124,19 +89,6 @@ class CrfSuite:
         postag = line[token_idx][1]
         nonlocalnertag = line[token_idx][2]
 
-        """
-        bigram = ''
-        if line_idx == 0 and token_idx == 0:
-            bigram = "START" + ' ' + word.lower()
-        elif token_idx == 0 and line_idx != 0:
-            # previous line last token
-            prev_word = self.current_dataset[doc_idx][line_idx-1][len(self.current_dataset[doc_idx][line_idx-1])-1][0].lower()
-            bigram = prev_word + ' ' + word.lower()
-        else:
-            prev_word = line[token_idx-1][0].lower()
-            bigram = prev_word + ' ' + word.lower()
-        """
-
         features = {
                 "bias": 1.0,
                 "word": word.lower(),
@@ -152,32 +104,19 @@ class CrfSuite:
                 'pos[-3:]': postag[-3:],
                 'pos[-2:]': postag[-2:],
                 'nonlocalner': nonlocalnertag
-                #'word_idx': float(self.word2idx[word.lower()])
-                #"word_idx": self.model[word.lower()],
-                #"bigram_idx_count": self.bigram2idx[bigram],
-                #"pos_idx": self.pos_tag2idx[postag]
         }
 
-
         try:
-            #print("trying" + " " + word)
             for d_idx, dimension in enumerate(self.w2v_model[word.lower()]):
-                features["we_dimen_"+str(d_idx)+":"] = dimension
+                features["we_dimen_"+str(d_idx)] = dimension
         except KeyError:
-            features["we_dimen_"+str(0)+":"] = "UNKNOWN"
-
-
-        #print("word: " + word.lower() + " bigram: " + bigram.lower())
-        #time.sleep(1)
+            features["we_dimen_"+str(0)] = "UNKNOWN"
 
         if token_idx > 0:
             word1 = line[token_idx-1][0]
             postag1 = line[token_idx-1][1]
             nonlocalnertag1 = line[token_idx-1][2]
 
-            #features['nl-1'] = self.nonlocal_ner_tag2idx[nonlocalnertag1]
-            #features['p-1'] = self.pos_tag2idx[postag1]
-            #features['word-1'] = float(self.word2idx[word1.lower()])
             features['word-1'] = word1.lower()
             features['pos-1'] = postag1
             features['posbigram-1'] = postag1 + postag
@@ -188,12 +127,9 @@ class CrfSuite:
             features['word-1.isupper'] = word1.isupper()
             features['word-1.istitle'] = word1.istitle()
             features['word-1.isdigit'] = word1.isdigit()
-            #features['nonlocalner-1'] = nonlocalnertag1 
-            """
             features['word-1[-3:]'] = word1[-3:],
             features['word-1[-2:]'] = word1[-2:],
             features['word-1.idx']= float(token_idx-1)
-            """
         else:
             features['bigram-1'] = "BOL" + word.lower()
             features['BOL'] = 1.0
@@ -231,35 +167,7 @@ class CrfSuite:
             word1ahead = line[token_idx+1][0]
             features['trigram-1+1'] = word1behind.lower() + word.lower() + word1ahead.lower()
 
-        if token_idx < len(line)-2:
-            word1ahead = line[token_idx+1][0]
-            word2ahead = line[token_idx+2][0]
-            #features['trigram+2'] = word.lower() + word1ahead.lower() + word2ahead.lower()
-
-        if token_idx > 1:
-            word1behind = line[token_idx-1][0]
-            word2behind = line[token_idx-2][0]
-            #features['trigram-2'] =  word2behind.lower() + word1behind.lower() + word.lower()
-
-        """
-        if token_idx > 1:
-            word2 = line[token_idx-2][0]
-            postag2 = line[token_idx-2][1]
-            nonlocalnertag2 = line[token_idx-2][2]
-
-            features['nl-2'] = self.nonlocal_ner_tag2idx[nonlocalnertag2]
-            features['p-2'] = self.pos_tag2idx[postag2]
-            features['w-2'] = self.word2idx[word2.lower()]
-
-        if token_idx < len(line)-2:
-            word2 = line[token_idx+2][0]
-            postag2 = line[token_idx+2][1]
-            nonlocalnertag2 = line[token_idx+2][2]
-
-            features['nl+2'] = self.nonlocal_ner_tag2idx[nonlocalnertag2]
-            features['p+2'] = self.pos_tag2idx[postag2]
-            features['w+2'] = self.word2idx[word2.lower()]
-            """
+        #features['trigram-2'] =  word2behind.lower() + word1behind.lower() + word.lower()
 
         if line_idx == 0:
             features['BOD'] = 1.0
@@ -271,60 +179,6 @@ class CrfSuite:
         else:
             features['EOD'] = 0.0
 
-        """
-        features = [
-            'bias',
-            'word.lower=' + word.lower(),
-            'word[-3:]=' + word[-3:],
-            'word[-2:]=' + word[-2:],
-            'word.isupper=%s' % word.isupper(),
-            'word.istitle=%s' % word.istitle(),
-            'word.isdigit=%s' % word.isdigit(),
-            'word.idx=' + str(token_idx),
-            'postag=' + postag,
-            'postag[:2]=' + postag[:2],
-            'nonlocalnertag=' + nonlocalnertag,
-            'line.idx='+ str(line_idx)
-        ]
-
-        if token_idx > 0:
-            word1 = line[token_idx-1][0]
-            postag1 = line[token_idx-1][1]
-            nonlocalnertag1 = line[token_idx-1][2]
-            features.extend([
-                '-1:word.lower=' + word1.lower(),
-                '-1:word.istitle=%s' % word1.istitle(),
-                '-1:word.isupper=%s' % word1.isupper(),
-                '-1word.firstletterupper=%s' % self.first_letter_upper(word1),
-                '-1word.idx=' + str(token_idx-1),
-                '-1:postag=' + postag1,
-                '-1:postag[:2]=' + postag1[:2],
-                '-1:nonlocalnertag=' + nonlocalnertag,
-            ])
-        else:
-            features.append('BOL')
-
-        if token_idx < len(line)-1:
-            word1 = line[token_idx+1][0]
-            postag1 = line[token_idx+1][1]
-            nonlocalnertag1 = line[token_idx+1][2]
-            features.extend([
-                '+1:word.lower=' + word1.lower(),
-                '+1:word.istitle=%s' % word1.istitle(),
-                '+1:word.isupper=%s' % word1.isupper(),
-                '+1word.firstletterupper=%s' % self.first_letter_upper(word1),
-                '+1word.idx=' + str(token_idx+1),
-                '+1:postag=' + postag1,
-                '+1:postag[:2]=' + postag1[:2],
-                '+1:nonlocalnertag=' + nonlocalnertag,
-            ])
-
-        else:
-            features.append('EOL')
-
-        if line_idx == doc_size:
-            features.append('EOD')
-        """
         return features
 
     def sent2features(self, line, line_idx, doc_idx, doc_size):
