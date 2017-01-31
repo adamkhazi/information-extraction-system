@@ -8,11 +8,18 @@ import time
 import logging
 import copy
 import gensim
+import sklearn_crfsuite
+import scipy.stats
 
 from itertools import chain
+from gensim.models import word2vec
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.preprocessing import LabelBinarizer
-from gensim.models import word2vec
+from sklearn.metrics import make_scorer
+from sklearn.cross_validation import cross_val_score
+from sklearn.grid_search import RandomizedSearchCV
+from sklearn_crfsuite import scorers
+from sklearn_crfsuite import metrics
 
 from generate_dataset import GenerateDataset
 from dataset import Dataset
@@ -24,9 +31,10 @@ class CrfSuite(Tags):
     __pre_trained_models_folder = "pre_trained_models"
     __google_news_word2vec = "GoogleNews-vectors-negative300.bin.gz"
 
-    __default_ner_tag = "O"
-
     __w2v_model_name = "generated_w2v_model"
+
+    def __init__(self):
+        self.logger = Logger()
 
     # pre-trained embeddings
     def load_embeddings(self):
@@ -71,9 +79,9 @@ class CrfSuite(Tags):
 
         print("encode_dataset: " + str(self.word_idx) + " unique words")
 
-    def get_dataset(self):
+    def get_dataset(self, nr_of_files=-1):
         dataset = Dataset()
-        dataset.read()
+        dataset.read(nr_of_files=nr_of_files)
         self.total_sents = dataset.resume_content
         print("Read " + str(len(self.total_sents)) + " documents")
 
@@ -91,18 +99,19 @@ class CrfSuite(Tags):
         features = {
                 "bias": 1.0,
                 "word": word.lower(),
-                'word[-3:]': word[-3:],
-                'word[-2:]': word[-2:],
+                'word[-3:]': word[-3:].lower(),
+                'word[-2:]': word[-2:].lower(),
                 'word.isupper': word.isupper(),
                 'word.istitle': word.istitle(),
                 'word.isdigit': word.isdigit(),
+                'word.freq': float(self.word2count[word.lower()]),
                 'word.idx': float(token_idx),
                 'line.idx': float(line_idx),
                 'line.size': float(len(line)),
                 'pos': postag,
                 'pos[-3:]': postag[-3:],
-                'pos[-2:]': postag[-2:],
-                'nonlocalner': nonlocalnertag
+                'pos[-2:]': postag[-2:]
+                #'nonlocalner': nonlocalnertag
         }
 
         try:
@@ -125,8 +134,9 @@ class CrfSuite(Tags):
             features['word-1.isupper'] = word1.isupper()
             features['word-1.istitle'] = word1.istitle()
             features['word-1.isdigit'] = word1.isdigit()
-            features['word-1[-3:]'] = word1[-3:],
-            features['word-1[-2:]'] = word1[-2:],
+            features['word-1[-3:]'] = word1[-3:]
+            features['word-1[-2:]'] = word1[-2:]
+            features['word.freq'] = float(self.word2count[word1.lower()])
             features['word-1.idx']= float(token_idx-1)
         else:
             features['bigram-1'] = "BOL" + word.lower()
@@ -148,6 +158,8 @@ class CrfSuite(Tags):
             features['word+1.isdigit'] = word1.isdigit()
             features['word+1[-3:]'] = word1[-3:]
             features['word+1[-2:]'] = word1[-2:]
+            features['word.freq'] = float(self.word2count[word1.lower()])
+            features['word+1.idx']= float(token_idx+1)
         else:
             features['bigram+1'] = word.lower() + "EOL"
             features['EOL'] = 1.0
@@ -183,36 +195,42 @@ class CrfSuite(Tags):
 
     def doc2features(self, doc_idx, doc):
         return [self.sent2features(doc[line_idx], line_idx, doc_idx, len(doc)-1) for line_idx in range(len(doc))]
-        #return [self.sent2features(line) for line in doc]
 
     def doc2labels(self, doc):
         return [self.sent2labels(sent) for sent in doc]
 
     def generate_features(self):
+        self.logger.println("Generating features for all tokens")
         self.current_dataset = self.train_sents
         self.X_train = [self.doc2features(doc_idx, d) for doc_idx, d in enumerate(self.train_sents)]
         self.y_train = [self.doc2labels(d) for d in self.train_sents]
+        self.logger.println("Generated features for training data")
 
         self.current_dataset = self.test_sents
         self.X_test = [self.doc2features(doc_idx, s) for doc_idx, s in enumerate(self.test_sents)]
         self.y_test = [self.doc2labels(s) for s in self.test_sents]
-        print("Features created for train and test data")
+        self.logger.println("Generated features for test data")
+        self.logger.println("Features created for train and test data")
 
     def train_model(self):
         trainer = pycrfsuite.Trainer(verbose=True)
-        print("pycrfsuite Trainer init")
+        self.logger.println("pycrfsuite Trainer init")
 
+        count = 0
         # transform data structure to group tokens by lines
         for doc_x, doc_y in zip(self.X_train, self.y_train):
             for line_idx, line in enumerate(doc_x):
                 trainer.append(line, doc_y[line_idx])
+            count+=1
+            self.logger.print("Added %s documents to trainer" % count)
 
-        print("pycrfsuite Trainer has data")
+        self.logger.new_line()
+        self.logger.println("pycrfsuite Trainer has data")
 
         trainer.set_params({
-            'c1': 0.1,   # coefficient for L1 penalty
-            'c2': 0.1,  # coefficient for L2 penalty
-            'max_iterations': 300,  # stop earlier
+            'c1': 0.2,   # coefficient for L1 penalty
+            'c2': 0.2,  # coefficient for L2 penalty
+            'max_iterations': 100,  # stop earlier
 
             # include states features that do not even occur in the training
             # data, crfsuite creates all possible associations between
@@ -264,7 +282,7 @@ class CrfSuite(Tags):
 
                 entity_found = ""
                 while True:
-                    if tags[tag_idx] == Tags.__outside_tag:
+                    if tag_idx >= len(tags) or tags[tag_idx] == Tags.__outside_tag:
                         break
                     entity_found = entity_found + " " + doc[token_idx]['word']
                     tag_idx += 1
@@ -283,14 +301,9 @@ class CrfSuite(Tags):
         docs_y_test_true = []
 
         for doc_x, doc_y in zip(self.X_train, self.y_train):
-            xseq = []
-            yseq = []
             for line_idx, line in enumerate(doc_x):
-                for token_idx, token in enumerate(line):
-                    xseq.append(token)
-                    yseq.append(doc_y[line_idx][token_idx])
-            docs_x_test.append(xseq)
-            docs_y_test_true.append(yseq)
+                docs_x_test.append(line)
+                docs_y_test_true.append(doc_y[line_idx])
 
         y_pred = [tagger.tag(doc) for doc in docs_x_test]
 
@@ -315,3 +328,37 @@ class CrfSuite(Tags):
 
         print("Test set:")
         print(self.basic_classification_report(docs_y_test_true, y_pred))
+
+    def optimise_model(self):
+        # prepare data structure
+        count = 0
+        xseq = []
+        yseq = []
+        # transform data structure to group tokens by lines
+        for doc_x, doc_y in zip(self.X_train, self.y_train):
+            for line_idx, line in enumerate(doc_x):
+                xseq.append(line)
+                yseq.append(doc_y[line_idx])
+
+            count+=1
+            self.logger.print("Added %s documents to trainer" % count)
+
+        # define fixed parameters and parameters to search
+        crf = sklearn_crfsuite.CRF(
+            algorithm='lbfgs',
+            max_iterations=100,
+            all_possible_transitions=True
+        )
+        params_space = {
+            'c1': scipy.stats.expon(scale=0.5),
+            'c2': scipy.stats.expon(scale=0.05),
+        }
+
+        labels = Tags.tag_list
+        labels.remove('O')
+        # use the same metric for evaluation
+        f1_scorer = make_scorer(metrics.flat_f1_score, average='weighted', labels=labels)
+
+        # search
+        rs = RandomizedSearchCV(crf, params_space, cv=3, verbose=1, n_jobs=-1, n_iter=50, scoring=f1_scorer)
+        rs.fit(xseq, yseq)

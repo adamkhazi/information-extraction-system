@@ -28,9 +28,11 @@ class Dataset:
 
         print("Saved tagged tokens to: " + path)
 
-    def read(self):
+    def read(self, nr_of_files=-1):
         dataset_docs = []
+        count = 0
         for filename in os.listdir(self.__dataset_folder):
+            count += 1
             current_file_path = self.__dataset_folder + "/" + filename
             if current_file_path.endswith(".txt"):
                 with io.open(current_file_path, 'r', encoding='utf-8') as tsvin:
@@ -44,4 +46,6 @@ class Dataset:
                         else:
                             single_line.append((row[0], row[1], row[2], row[3]))
                     dataset_docs.append(single_doc)
+            if count == nr_of_files and nr_of_files != -1:
+                break
         self.resume_content = dataset_docs

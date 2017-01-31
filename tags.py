@@ -9,15 +9,26 @@ class Tags:
 
     __education_course_tag = "EDU-MAJOR"
     __education_institution_tag = "EDU-INST"
-    
-    __start_tagset = { __begin_tag_prefix + __job_position_tag, 
+
+    start_tagset = { __begin_tag_prefix + __job_position_tag,
         __begin_tag_prefix + __job_company_tag,
         __begin_tag_prefix + __education_course_tag,
         __begin_tag_prefix + __education_institution_tag
     }
 
-    __inside_tagset = { __inside_tag_prefix + __job_position_tag, 
+    inside_tagset = { __inside_tag_prefix + __job_position_tag,
         __inside_tag_prefix + __job_company_tag,
         __inside_tag_prefix + __education_course_tag,
         __inside_tag_prefix + __education_institution_tag
     }
+
+    tag_list = [ __inside_tag_prefix + __job_position_tag,
+        __inside_tag_prefix + __job_company_tag,
+        __inside_tag_prefix + __education_course_tag,
+        __inside_tag_prefix + __education_institution_tag,
+        __begin_tag_prefix + __job_position_tag,
+        __begin_tag_prefix + __job_company_tag,
+        __begin_tag_prefix + __education_course_tag,
+        __begin_tag_prefix + __education_institution_tag,
+        __outside_tag
+    ]
