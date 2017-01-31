@@ -1,7 +1,4 @@
-from itertools import chain
 import nltk
-from sklearn.metrics import classification_report, confusion_matrix
-from sklearn.preprocessing import LabelBinarizer
 import sklearn
 import pycrfsuite
 import csv
@@ -11,12 +8,17 @@ import time
 import logging
 import copy
 import gensim
+
+from itertools import chain
+from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.preprocessing import LabelBinarizer
 from gensim.models import word2vec
 
 from generate_dataset import GenerateDataset
 from dataset import Dataset
+from tags import Tags
 
-class CrfSuite:
+class CrfSuite(Tags):
     __seperator = "/"
     __pre_trained_models_folder = "pre_trained_models"
     __google_news_word2vec = "GoogleNews-vectors-negative300.bin.gz"
@@ -417,11 +419,17 @@ class CrfSuite:
 
     def interpret_predicted_tags(self, doc, tags):
         identified_entities = []
-        print(str(len(doc)))
-        print(str(len(tags)))
-        for token_idx, token in enumerate(doc):
-            if tags[token_idx] != self.__default_ner_tag:
-                identified_entities.append((doc[token_idx]['word'], tags[token_idx]))
+        for tag_idx, tag in enumerate(tags):
+            if tag in Tags.__start_tagset:
+
+                entity_found = ""
+                while True:
+                    if tags[tag_idx] == Tags.__outside_tag:
+                        break
+                    entity_found = entity_found + " " + doc[token_idx]['word']
+                    tag_idx += 1
+
+                identified_entities.append(entity_found, tags[token_idx])
 
         return identified_entities
 
