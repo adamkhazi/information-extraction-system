@@ -11,11 +11,10 @@ class Tokeniser():
 
     def tokenise_doclines_to_words(self, docs):
         tokenised_resumes = []
-        rtokenizer = RegexpTokenizer(r'\w+')
         for doc_idx, doc in enumerate(docs):
             tokenised_doc_lines = []
             for line_idx, line in enumerate(doc):
-                line = rtokenizer.tokenize(line)
+                line = word_tokenize(line)
                 if line != []: # consider using spaces as features
                     filtered_words = [word for word in line if word not in stopwords.words('english')]
                     tokenised_doc_lines.append(filtered_words)
