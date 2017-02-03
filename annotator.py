@@ -33,6 +33,9 @@ class Annotator():
         annotated_resumes = []
         for idx, resume in enumerate(resumes):
             annotated_resumes.append(self.annotate_doc(resume, labels[idx]))
+
+        # non local ner tag entire dataset at a time for speed
+        annotated_resumes = self.__tagger.nonlocal_ner_tag(annotated_resumes)
         return annotated_resumes
 
     # doc: a single résumé document with token strings in each slot of list
@@ -51,7 +54,6 @@ class Annotator():
         prepared_doc = self.__match_entity(prepared_doc, edu_inst_list, self.__education_institution_tag)
 
         prepared_doc = self.__tagger.pos_tag(prepared_doc)
-        prepared_doc = self.__tagger.nonlocal_ner_tag(prepared_doc)
 
         return prepared_doc
 

@@ -29,10 +29,6 @@ class Tagger:
         # setup st tagger once so pickle file not reloaded
         self.setup_nonlocal_tagger()
 
-    # TODO
-    def get_job_titles(xml):
-        return job_title_list
-
     # add tuples in place of tokens
     def prepare_doc(self, doc):
         for line_idx, line in enumerate(doc):
@@ -110,7 +106,7 @@ class Tagger:
         pos_doc = nltk.pos_tag_sents(plain_doc)
         return self.add_pos_tags(pos_doc, doc)
 
-    # only text part of token
+    # change tuples to only text strings
     def tuple_to_plain(self, doc):
         for line_idx, line in enumerate(doc):
             for token_idx, token in enumerate(line):
@@ -140,15 +136,27 @@ class Tagger:
         stanford_jars = find_jars_within_path(stanford_dir)
         self.__stanford_tagger._stanford_jar = ':'.join(stanford_jars)
 
-    def nonlocal_ner_tag(self, doc):
+    # nonlocal named entity recoginition tags assignment function
+    # resumes: list resumes documents in doc/line/token structure
+    def nonlocal_ner_tag(self, resumes):
         # do not tokenise text
         nltk.internals.config_java(options='-tokenizerFactory edu.stanford.nlp.process.WhitespaceTokenizer -tokenizerOptions "tokenizeNLs=true"')
 
-        copy_doc = copy.deepcopy(doc)
-        plain_doc = self.tuple_to_plain(copy_doc)
+        copied_resumes = copy.deepcopy(resumes)
+        for doc_idx, doc in enumerate(copied_resumes):
+            copied_resumes[doc_idx] = self.tuple_to_plain(doc)
 
-        tagged_doc = self.__stanford_tagger.tag_sents(plain_doc)
-        return self.add_nonlocal_ner_tags(tagged_doc, doc)
+        # list of all lines
+        copied_resumes, doc_lengths = self.flat_token_list_transform(copied_resumes)
+        tagged_resumes = self.__stanford_tagger.tag_sents(copied_resumes)
+        # list of all docs
+        tagged_resumes = self.line_list_transform(tagged_resumes, doc_lengths)
+
+        # add nonlocal ner tag in tuple slots to return in same structure as inputted
+        for tagged_doc_idx, tagged_doc in enumerate(tagged_resumes):
+            resumes[tagged_doc_idx] = self.add_nonlocal_ner_tags(tagged_doc, resumes[tagged_doc_idx])
+
+        return resumes
 
     def add_nonlocal_ner_tags(self, nonlocal_ner_doc, original_doc):
         for line_idx, line in enumerate(original_doc):
