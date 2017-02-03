@@ -6,13 +6,13 @@ class Logger:
     __empty_string = ""
 
     def __init__(self):
-        self.__logging.basicConfig(format='[%(asctime)s] : %(levelname)s : %(message)s', level=logging.INFO)
+        logging.basicConfig(format='[%(asctime)s] : %(levelname)s : %(message)s', level=logging.INFO)
 
     def new_line(self):
         print(self.__new_line)
 
     def println(self, msg):
-        self.__logging.info(msg)
+        logging.info(msg)
 
     def print(self, msg):
         output = self.__carriage_return + msg
