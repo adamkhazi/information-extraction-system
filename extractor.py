@@ -118,8 +118,13 @@ class Extractor:
             # append filename + ext to path
             filepath = self.__dataset_raw_data_folder + self.__file_path_seperator + filename[0] + filename[1]
             extracted_information = parser.from_file(filepath)
-            file_content.append(extracted_information["content"])
-            file_metadata.append(extracted_information["metadata"])
+
+            # check if a supported file was processed successfully
+            if "content" in extracted_information:
+                file_content.append(extracted_information["content"])
+                file_metadata.append(extracted_information["metadata"])
+            else:
+                del self.dataset_filenames[idx]
 
         self.resume_content = file_content
         self.resume_metadata = file_metadata
