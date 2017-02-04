@@ -6,12 +6,14 @@ from crf_suite import CrfSuite
 from annotator import Annotator
 from api import API
 from logger import Logger
+from evaluator import Evaluator
 
 class CliMenu():
     __argument_train = "-t"
     __argument_optimise = "-o"
     __argument_annotate_dataset = "-a"
     __argument_api = "-rn"
+    __argument_evaluate = "-e"
 
     def __init__(self):
         self.logger = Logger()
@@ -38,12 +40,19 @@ class CliMenu():
         elif command_arg == self.__argument_api:
             self.run_api()
 
+        elif command_arg == self.__argument_evaluate:
+            if len(sys.argv) > 2:
+                self.evaluate_model(sys.argv[2])
+            else:
+                print("evaluate model option needs an extra parameter")
+
         else:
             print("Commands accepted:")
-            print("train: -t <number_of_documents>")
-            print("optimise: -o")
-            print("annotate dataset: -a <number_of_documents>")
+            print("train: -t <number_of_documents>(default is all available documents")
+            print("hyperparameter optimisation: -o")
+            print("annotate dataset: -a <number_of_documents>(default is all available documents")
             print("run api: -rn")
+            print("evaluate model: -e [-b train and analyse performance using bootstrapping]|[-r perform roc analysis]")
 
     def annotate_db_data(self):
         """
@@ -100,6 +109,11 @@ class CliMenu():
         self.logger.println("api called")
         api = API()
         api.run()
+
+    def evaluate_model(self, arg):
+        self.logger.println("evaluate model called")
+        evaluator = Evaluator()
+
 
 if __name__ == '__main__':
     CliMenu().perform_command()
