@@ -23,8 +23,8 @@ class Tagger:
     __ner_tag_tuple_idx = 3
 
     def __init__(self):
-        logger = Logger()
-        logger.println("tagger created")
+        self.__logger = Logger()
+        self.__logger.println("tagger created")
 
         # setup st tagger once so pickle file not reloaded
         self.setup_nonlocal_tagger()
@@ -135,10 +135,12 @@ class Tagger:
         stanford_dir = self.__stanford_tagger._stanford_jar[0].rpartition('/')[0]
         stanford_jars = find_jars_within_path(stanford_dir)
         self.__stanford_tagger._stanford_jar = ':'.join(stanford_jars)
+        self.__logger.println("nonlocal tagger loaded")
 
     # nonlocal named entity recoginition tags assignment function
     # resumes: list resumes documents in doc/line/token structure
     def nonlocal_ner_tag(self, resumes):
+        self.__logger.println("nonlocal tagging resumes")
         # do not tokenise text
         nltk.internals.config_java(options='-tokenizerFactory edu.stanford.nlp.process.WhitespaceTokenizer -tokenizerOptions "tokenizeNLs=true"')
 
@@ -155,6 +157,8 @@ class Tagger:
         # add nonlocal ner tag in tuple slots to return in same structure as inputted
         for tagged_doc_idx, tagged_doc in enumerate(tagged_resumes):
             resumes[tagged_doc_idx] = self.add_nonlocal_ner_tags(tagged_doc, resumes[tagged_doc_idx])
+
+        self.__logger.println("completed nonlocal tagging resumes")
 
         return resumes
 

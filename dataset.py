@@ -3,12 +3,18 @@ import io
 import csv
 import glob
 
+from logger import Logger
+
 class Dataset:
     # saves and read annotated files to this folder
     __dataset_folder = "dataset_files"
 
     resume_content = []
     resume_labels = []
+
+    def __init__(self):
+        self.__logger = Logger()
+        self.__logger.println("dataset created")
 
     def save(self):
         directory=self.__dataset_folder
@@ -26,7 +32,7 @@ class Dataset:
                 doc_file.write("\n")
             doc_file.close()
 
-        print("Saved tagged tokens to: " + path)
+        self.__logger.println("saved dataset to: " + path)
 
     def read(self, nr_of_files=-1):
         dataset_docs = []
@@ -49,3 +55,4 @@ class Dataset:
             if count == nr_of_files and nr_of_files != -1:
                 break
         self.resume_content = dataset_docs
+        self.__logger.println("read %s files from: " % len(self.resume_content) + self.__dataset_folder)

@@ -83,7 +83,6 @@ class CrfSuite(Tags):
         dataset = Dataset()
         dataset.read(nr_of_files=nr_of_files)
         self.total_sents = dataset.resume_content
-        print("Read " + str(len(self.total_sents)) + " documents")
 
     def split_dataset(self):
         split_point = math.ceil(len(self.total_sents) * 0.75)

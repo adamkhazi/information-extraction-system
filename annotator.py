@@ -5,6 +5,7 @@ from extractor import Extractor
 from tagger import Tagger
 from dataset import Dataset
 from tokeniser import Tokeniser
+from logger import Logger
 
 # Class annotates documents and saves to disk
 class Annotator():
@@ -19,6 +20,7 @@ class Annotator():
         self.__tokeniser = Tokeniser()
         self.__tagger = Tagger()
         self.__dataset = Dataset()
+        self.__logger = Logger()
 
     def prepare_dataset(self, nr_of_docs=-1):
         resumes, labels = self.__extractor.read_raw_files(nr_of_docs)
@@ -32,12 +34,14 @@ class Annotator():
     # resumes: list of tokenised (by line and word) résumé docs
     # labels: xml structure storing labels for several resumes
     def annotate_docs(self, resumes, labels):
+        self.__logger.println("annotating resumes")
         annotated_resumes = []
         for idx, resume in enumerate(resumes):
             annotated_resumes.append(self.annotate_doc(resume, labels[idx]))
 
         # non local ner tag entire dataset at a time for speed
         annotated_resumes = self.__tagger.nonlocal_ner_tag(annotated_resumes)
+        self.__logger.println("completed annotating resumes")
         return annotated_resumes
 
     # doc: a single résumé document with token strings in each slot of list
