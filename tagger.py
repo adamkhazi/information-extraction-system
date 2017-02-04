@@ -156,6 +156,7 @@ class Tagger:
 
         # add nonlocal ner tag in tuple slots to return in same structure as inputted
         for tagged_doc_idx, tagged_doc in enumerate(tagged_resumes):
+            self.__logger.println("adding nonlocal tags to resume %s/%s " % (tagged_doc_idx, len(tagged_resumes)))
             resumes[tagged_doc_idx] = self.add_nonlocal_ner_tags(tagged_doc, resumes[tagged_doc_idx])
 
         self.__logger.println("completed nonlocal tagging resumes")

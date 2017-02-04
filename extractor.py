@@ -79,6 +79,8 @@ class Extractor:
         file_content = []
         file_metadata = []
 
+        # idxs of files that don't have content
+        remove_files_idxs = []
         for idx, filename in enumerate(self.dataset_filenames):
             self.logger.println("sending resume %s/%s to tika" % (idx, len(self.dataset_filenames)-1) )
             # append filename + ext to path
@@ -90,7 +92,10 @@ class Extractor:
                 file_content.append(extracted_information["content"])
                 file_metadata.append(extracted_information["metadata"])
             else:
-                del self.dataset_filenames[idx]
+                remove_files_idxs.append(idx)
+
+        for idx in remove_files_idxs:
+            del self.dataset_filenames[idx]
 
         self.resume_content = file_content
         self.resume_metadata = file_metadata
