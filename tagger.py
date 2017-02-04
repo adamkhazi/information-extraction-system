@@ -6,6 +6,7 @@ import os
 
 from os.path import expanduser
 from nltk.tokenize import RegexpTokenizer
+from nltk.tokenize import word_tokenize
 from nltk.tag import StanfordNERTagger
 from nltk.internals import find_jars_within_path
 from nltk.corpus import stopwords
@@ -42,9 +43,8 @@ class Tagger:
         content_flat_list, length_of_lines = self.flat_token_list_transform(doc)
         content_flat_list_len = len(content_flat_list)
 
-        rtokenizer = RegexpTokenizer(r'\w+')
         label_str = label_str.lower() #lowercase for comparison
-        label_str = rtokenizer.tokenize(label_str)
+        label_str = word_tokenize(label_str)
         label_str = [word for word in label_str if word not in stopwords.words('english')]
         label_str_len = len(label_str)
 
