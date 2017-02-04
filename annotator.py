@@ -1,10 +1,12 @@
+import pdb
+import xml.etree.cElementTree as ET
+
 from extractor import Extractor
 from tagger import Tagger
 from dataset import Dataset
 from tokeniser import Tokeniser
 
-# Class is used to extract data from résumé documents,
-# annotate documents and save to disk
+# Class annotates documents and saves to disk
 class Annotator():
     __job_position_tag = "EMP-POS"
     __job_company_tag = "EMP-COMP"

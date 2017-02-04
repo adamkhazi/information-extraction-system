@@ -1,8 +1,10 @@
 import tika
 import nltk
 import numpy
-import untangle
 import os
+import html
+
+import xml.etree.cElementTree as ET
 
 from tika import parser
 from nltk.tokenize import RegexpTokenizer
@@ -29,68 +31,32 @@ class Extractor:
         self.logger.println("extractor created")
 
     def get_edu_majors(self, label_set):
-        try:
-            label_set.NewDataSet.Education
-        except IndexError:
+        edu_major_list = label_set.findall("Education/edu_major")
+        if not edu_major_list:
             return []
-
-        edu_major_list = []
-        Education = label_set.NewDataSet.Education
-        for course in Education:
-            try:
-                course.edu_major
-            except IndexError:
-                continue
-            major = course.edu_major.cdata.strip()
-            edu_major_list.append(major)
-
-        return edu_major_list
+        else:
+            return [html.unescape(major.text) for major in edu_major_list]
 
     def get_edu_institutions(self, label_set):
-        try:
-            label_set.NewDataSet.Education
-        except IndexError:
+        edu_inst_list = label_set.findall("Education/edu_inst_name")
+        if not edu_inst_list:
             return []
-
-        edu_inst_list = []
-        Education = label_set.NewDataSet.Education
-        for course in Education:
-            try:
-                course.edu_inst_name
-            except IndexError:
-                continue
-            inst_name = course.edu_inst_name.cdata.strip()
-            edu_inst_list.append(inst_name)
-
-        return edu_inst_list
+        else:
+            return [html.unescape(inst.text) for inst in edu_inst_list]
 
     def get_company_names(self, label_set):
-        if not label_set.NewDataSet.Jobs:
+        company_list = label_set.findall("Jobs/job_company_name")
+        if not company_list:
             return []
-
-        company_list = []
-        Jobs = label_set.NewDataSet.Jobs
-        for job in Jobs:
-            if not job.job_company_name:
-                continue
-            jc = job.job_company_name.cdata.strip()
-            company_list.append(jc)
-
-        return company_list
+        else:
+            return [html.unescape(company.text) for company in company_list]
 
     def get_job_titles(self, label_set):
-        if not label_set.NewDataSet.Jobs:
+        job_list = label_set.findall("Jobs/job_position")
+        if not job_list:
             return []
-
-        job_list = []
-        Jobs = label_set.NewDataSet.Jobs
-        for job in Jobs:
-            if not job.job_position:
-                continue
-            jp = job.job_position.cdata.strip()
-            job_list.append(jp)
-
-        return job_list
+        else:
+            return [html.unescape(j_title.text) for j_title in job_list]
 
     def get_dataset_folder(self):
         return self.__dataset_raw_data_folder
@@ -129,7 +95,7 @@ class Extractor:
         resume_labels = []
         for idx, filename in enumerate(self.dataset_filenames):
             filepath = self.__dataset_raw_data_folder + self.__file_path_seperator + filename[0] + self.__file_ext_xml
-            xml_file = untangle.parse(filepath)
+            xml_file = ET.ElementTree(file=filepath)
             resume_labels.append(xml_file)
         self.resume_labels = resume_labels
         self.logger.println("read labels from %s xml files" % len(self.resume_labels))
