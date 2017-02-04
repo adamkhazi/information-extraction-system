@@ -35,28 +35,28 @@ class Extractor:
         if not edu_major_list:
             return []
         else:
-            return [html.unescape(major.text) for major in edu_major_list]
+            return [html.unescape(major.text) for major in edu_major_list if major.text is not None]
 
     def get_edu_institutions(self, label_set):
         edu_inst_list = label_set.findall("Education/edu_inst_name")
         if not edu_inst_list:
             return []
         else:
-            return [html.unescape(inst.text) for inst in edu_inst_list]
+            return [html.unescape(inst.text) for inst in edu_inst_list if inst.text is not None]
 
     def get_company_names(self, label_set):
         company_list = label_set.findall("Jobs/job_company_name")
         if not company_list:
             return []
         else:
-            return [html.unescape(company.text) for company in company_list]
+            return [html.unescape(company.text) for company in company_list if company.text is not None]
 
     def get_job_titles(self, label_set):
         job_list = label_set.findall("Jobs/job_position")
         if not job_list:
             return []
         else:
-            return [html.unescape(j_title.text) for j_title in job_list]
+            return [html.unescape(j_title.text) for j_title in job_list if j_title is not None]
 
     def get_dataset_folder(self):
         return self.__dataset_raw_data_folder

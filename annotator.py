@@ -38,6 +38,7 @@ class Annotator():
         annotated_resumes = []
         for idx, resume in enumerate(resumes):
             annotated_resumes.append(self.annotate_doc(resume, labels[idx]))
+            self.__logger.println("annotating resume %s/%s with true labels and pos tags" % (idx+1, len(resumes)))
 
         # non local ner tag entire dataset at a time for speed
         annotated_resumes = self.__tagger.nonlocal_ner_tag(annotated_resumes)
