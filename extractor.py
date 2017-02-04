@@ -56,7 +56,7 @@ class Extractor:
         if not job_list:
             return []
         else:
-            return [html.unescape(j_title.text) for j_title in job_list if j_title is not None]
+            return [html.unescape(j_title.text) for j_title in job_list if j_title.text is not None]
 
     def get_dataset_folder(self):
         return self.__dataset_raw_data_folder
