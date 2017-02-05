@@ -7,6 +7,9 @@ from annotator import Annotator
 from api import API
 from logger import Logger
 from evaluator import Evaluator
+from dataset import Dataset
+from we_model import WeModel
+from feature_generator import FeatureGenerator
 
 class CliMenu():
     __argument_train = "-t"
@@ -93,15 +96,30 @@ class CliMenu():
         self.logger.println("train model called")
         start_time = timeit.default_timer()
         cs = CrfSuite()
-        cs.get_dataset(nr_of_files=nr_of_files)
-        #cs.load_embeddings()
-        cs.generate_embeddings()
-        cs.encode_dataset()
 
-        cs.split_dataset()
-        cs.generate_features()
-        cs.train_model()
-        cs.test_model()
+        dataset = Dataset()
+        data = dataset.read(nr_of_files=nr_of_files)
+        train_set, test_set = dataset.split_dataset(data)
+
+        we_model = WeModel()
+        w2v_model = we_model.train(train_set) # optionally load a pretrained model here 
+        we_model.save(w2v_model)
+
+        word2count, word2idx = dataset.encode_dataset(train_set)
+
+        f_generator = FeatureGenerator(w2v_model, word2count, word2idx)
+        train_features = f_generator.generate_features_docs(train_set)
+        y_train = f_generator.generate_true_outcome(train_set)
+
+        test_features = f_generator.generate_features_docs(train_set)
+        y_test = f_generator.generate_true_outcome(test_features)
+
+        ner_model = cs.train_model(train_features, y_train)
+        print("printing training results")
+        cs.test_model(ner_model, train_features, y_train)
+        print("printing test results")
+        cs.test_model(ner_model, test_features, y_test)
+
         elapsed_seconds = timeit.default_timer() - start_time
         self.logger.print_time_taken("train model operation took", elapsed_seconds)
 

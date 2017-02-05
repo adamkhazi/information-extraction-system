@@ -22,4 +22,5 @@ class Evaluator():
 
     # used an already trained model and perform ROC analysis with the dataset
     def perform_roc_analysis(self):
+        raise NotImplementedError
 
