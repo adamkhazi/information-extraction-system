@@ -119,9 +119,9 @@ class CliMenu():
         model_name = "test_NER.crfsuite"
         trainer = cs.train_model(train_features, y_train, model_name)
         print("printing training results")
-        cs.test_model(model_name, train_features, y_train)
+        y_train_pred = cs.test_model(model_name, train_features, y_train)
         print("printing test results")
-        cs.test_model(model_name, test_features, y_test)
+        y_test_pred = cs.test_model(model_name, test_features, y_test)
 
         elapsed_seconds = timeit.default_timer() - start_time
         self.logger.print_time_taken("train model operation took", elapsed_seconds)

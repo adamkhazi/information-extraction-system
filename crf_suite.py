@@ -9,6 +9,7 @@ import logging
 import copy
 import sklearn_crfsuite
 import scipy.stats
+import pdb
 
 from itertools import chain
 from sklearn.metrics import classification_report, confusion_matrix
@@ -72,6 +73,7 @@ class CrfSuite(Tags):
 
         class_indices = {cls: idx for idx, cls in enumerate(lb.classes_)}
 
+        # TODO return f1 score or other wise here: http://scikit-learn.org/stable/modules/classes.html#module-sklearn.metrics
         return classification_report(y_true_combined, y_pred_combined, labels = [class_indices[cls] for cls in tagset], target_names = tagset)
 
     def load_tagger(self):
@@ -129,7 +131,7 @@ class CrfSuite(Tags):
             docs_y_test_true.append(yseq)
 
         y_pred = [tagger.tag(doc) for doc in docs_x_test]
-        print(self.basic_classification_report(docs_y_test_true, y_pred))
+        return y_pred
 
     def optimise_model(self):
         # prepare data structure
