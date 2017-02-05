@@ -3,6 +3,7 @@ import nltk
 import numpy
 import os
 import html
+import textract
 
 import xml.etree.cElementTree as ET
 
@@ -75,10 +76,8 @@ class Extractor:
         self.logger.println("read %s file names" % counter)
 
     def __read_resume_content(self):
-        # files share an index
-        file_content = []
-        file_metadata = []
-
+        self.resume_content = []
+        self.resume_metadata = []
         # idxs of files that don't have content
         remove_files_idxs = []
         for idx, filename in enumerate(self.dataset_filenames):
@@ -89,16 +88,15 @@ class Extractor:
 
             # check if a supported file was processed successfully
             if "content" in extracted_information:
-                file_content.append(extracted_information["content"])
-                file_metadata.append(extracted_information["metadata"])
+                self.resume_content.append(extracted_information["content"])
+                self.resume_metadata.append(extracted_information["metadata"])
             else:
                 remove_files_idxs.append(idx)
 
         for idx in remove_files_idxs:
+            self.logger.println("removing unprocessed resume file at index %s named %s" % (idx, self.dataset_filenames[idx]))
             del self.dataset_filenames[idx]
 
-        self.resume_content = file_content
-        self.resume_metadata = file_metadata
         self.logger.println("read content from %s resume files" % len(self.resume_content))
 
     def __read_resume_labels(self):
@@ -111,10 +109,19 @@ class Extractor:
         self.logger.println("read labels from %s xml files" % len(self.resume_labels))
 
     def __remove_empty_resumes(self):
+        # idxs of files that don't have content
+        remove_files_idxs = []
         for idx, file_content in enumerate(self.resume_content):
             if file_content is None:
-                del self.dataset_filenames[idx]
-                del self.resume_content[idx]
+                remove_files_idxs.append(idx)
+
+        deleted_count = 0
+        for idx in remove_files_idxs:
+            self.logger.println("removing empty resume file at index %s named %s" % (idx, self.dataset_filenames[idx]))
+            del self.dataset_filenames[idx-deleted_count]
+            del self.resume_metadata[idx-deleted_count]
+            del self.resume_content[idx-deleted_count]
+            deleted_count += 1
         self.logger.println("removed empty resume files and total file count is at %s" % len(self.resume_content))
 
     def read_raw_files(self, nr_of_docs):
@@ -131,6 +138,30 @@ class Extractor:
         docs = []
         docs.append(extracted_information["content"])
         return docs
+
+    def read_resume_content_txtract(self, resumes):
+        self.logger.println("extracting resume content using textract")
+        self.resume_content = []
+        # idxs of files that don't have content
+        remove_files_idxs = []
+        for idx, filename in enumerate(self.dataset_filenames):
+            self.logger.println("sending resume %s/%s to tika" % (idx+1, len(self.dataset_filenames)) )
+            # append filename + ext to path
+            filepath = self.__dataset_raw_data_folder + self.__file_path_seperator + filename[0] + filename[1]
+            extracted_bytes = textract.process(filepath, encoding="utf_8")
+            extracted_str = extracted_bytes.decode("utf-8")
+
+            # check if file has content
+            if len(extracted_str.split()) > 0:
+                self.resume_content.append(extracted_str)
+            else:
+                remove_files_idxs.append(idx)
+
+        for idx in remove_files_idxs:
+            self.logger.println("removing unprocessed resume file at index %s named %s" % (idx, self.dataset_filenames[idx]))
+            del self.dataset_filenames[idx]
+
+        self.logger.println("read content from %s resume files" % len(self.resume_content))
 
 """
 ner_words = nltk.ne_chunk(pos_words)
