@@ -1,3 +1,5 @@
+import copy 
+
 from logger import Logger
 
 # generates features for tokens in the dataset
@@ -10,13 +12,14 @@ class FeatureGenerator():
         self.word2idx = word2idx
 
     def generate_features_docs(self, data):
-        self.__logger.println("generating features for all tokens")
-        X = [self.doc2features(doc_idx, d) for doc_idx, d in enumerate(data)]
+        feature_data = copy.deepcopy(data)
+        X = [self.doc2features(doc_idx, d) for doc_idx, d in enumerate(feature_data)]
         self.__logger.println("generated features")
         return X
 
     def generate_true_outcome(self, data):
-        y = [self.doc2labels(d) for d in self.data]
+        true_outcome_data = copy.deepcopy(data)
+        y = [self.doc2labels(d) for d in true_outcome_data]
         return y
 
     def word2features(self, line, token_idx, line_idx, doc_idx, doc_size):
@@ -32,7 +35,7 @@ class FeatureGenerator():
                 'word.isupper': word.isupper(),
                 'word.istitle': word.istitle(),
                 'word.isdigit': word.isdigit(),
-                'word.freq': float(self.word2count[word.lower()]),
+                'word.freq': self.word_to_count(word),
                 'word.idx': float(token_idx),
                 'line.idx': float(line_idx),
                 'line.size': float(len(line)),
@@ -64,7 +67,7 @@ class FeatureGenerator():
             features['word-1.isdigit'] = word1.isdigit()
             features['word-1[-3:]'] = word1[-3:]
             features['word-1[-2:]'] = word1[-2:]
-            features['word.freq'] = float(self.word2count[word1.lower()])
+            features['word.freq'] = self.word_to_count(word1)
             features['word-1.idx']= float(token_idx-1)
         else:
             features['bigram-1'] = "BOL" + word.lower()
@@ -86,7 +89,7 @@ class FeatureGenerator():
             features['word+1.isdigit'] = word1.isdigit()
             features['word+1[-3:]'] = word1[-3:]
             features['word+1[-2:]'] = word1[-2:]
-            features['word.freq'] = float(self.word2count[word1.lower()])
+            features['word.freq'] = self.word_to_count(word1)
             features['word+1.idx']= float(token_idx+1)
         else:
             features['bigram+1'] = word.lower() + "EOL"
@@ -126,3 +129,9 @@ class FeatureGenerator():
 
     def doc2labels(self, doc):
         return [self.sent2labels(sent) for sent in doc]
+
+    def word_to_count(self, word):
+        try:
+            return float(self.word2count[word.lower()])
+        except KeyError:
+            return "UNKNOWN_WORD_COUNT"

@@ -1,4 +1,5 @@
 import gensim
+import copy
 
 from gensim.models import word2vec
 
@@ -18,7 +19,8 @@ class WeModel():
 
     def train(self, data, dimen=30):
         all_lines = []
-        for doc_idx, doc in enumerate(data):
+        we_data = copy.deepcopy(data)
+        for doc_idx, doc in enumerate(we_data):
             for line_idx, line in enumerate(doc):
                 all_lines.append(line)
 

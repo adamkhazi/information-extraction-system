@@ -30,7 +30,7 @@ class CrfSuite(Tags):
     def __init__(self):
         self.logger = Logger()
 
-    def train_model(self, X, y):
+    def train_model(self, X, y, model_name):
         trainer = pycrfsuite.Trainer(verbose=True)
         self.logger.println("pycrfsuite Trainer init")
 
@@ -58,7 +58,7 @@ class CrfSuite(Tags):
             'feature.possible_transitions': True
         })
         print(trainer.params())
-        trainer.train('test_NER.crfsuite')
+        trainer.train(model_name)
         return trainer
 
     def basic_classification_report(self, y_true, y_pred):
@@ -111,7 +111,9 @@ class CrfSuite(Tags):
         return identified_entities
 
     # use an existing model to tag data
-    def test_model(self, model, features, y):
+    def test_model(self, model_name, features, y):
+        tagger = pycrfsuite.Tagger()
+        tagger.open(model_name)
         # transformed data
         docs_x_test = []
         docs_y_test_true = []
@@ -126,7 +128,7 @@ class CrfSuite(Tags):
             docs_x_test.append(xseq)
             docs_y_test_true.append(yseq)
 
-        y_pred = [model.tag(doc) for doc in docs_x_test]
+        y_pred = [tagger.tag(doc) for doc in docs_x_test]
         print(self.basic_classification_report(docs_y_test_true, y_pred))
 
     def optimise_model(self):

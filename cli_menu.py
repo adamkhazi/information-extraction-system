@@ -1,5 +1,6 @@
 import sys
 import timeit
+import pdb
 
 from generate_dataset import GenerateDataset
 from crf_suite import CrfSuite
@@ -102,6 +103,7 @@ class CliMenu():
         train_set, test_set = dataset.split_dataset(data)
 
         we_model = WeModel()
+        # pass by value to avoid original list changing
         w2v_model = we_model.train(train_set) # optionally load a pretrained model here 
         we_model.save(w2v_model)
 
@@ -111,14 +113,15 @@ class CliMenu():
         train_features = f_generator.generate_features_docs(train_set)
         y_train = f_generator.generate_true_outcome(train_set)
 
-        test_features = f_generator.generate_features_docs(train_set)
-        y_test = f_generator.generate_true_outcome(test_features)
+        test_features = f_generator.generate_features_docs(test_set)
+        y_test = f_generator.generate_true_outcome(test_set)
 
-        ner_model = cs.train_model(train_features, y_train)
+        model_name = "test_NER.crfsuite"
+        trainer = cs.train_model(train_features, y_train, model_name)
         print("printing training results")
-        cs.test_model(ner_model, train_features, y_train)
+        cs.test_model(model_name, train_features, y_train)
         print("printing test results")
-        cs.test_model(ner_model, test_features, y_test)
+        cs.test_model(model_name, test_features, y_test)
 
         elapsed_seconds = timeit.default_timer() - start_time
         self.logger.print_time_taken("train model operation took", elapsed_seconds)
