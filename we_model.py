@@ -26,7 +26,7 @@ class WeModel():
             for token_idx, token in enumerate(line):
                 all_lines[line_idx][token_idx] = token[0].lower()
 
-        w2v_model = word2vec.Word2Vec(all_lines, size=dimen, iter=10)
+        w2v_model = word2vec.Word2Vec(all_lines, size=dimen, iter=10, min_count=1)
         return w2v_model
 
     def save(self, w2v_model):
