@@ -2,11 +2,22 @@ from nltk.tokenize import RegexpTokenizer
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 
+from logger import Logger
+
+import pdb
+
 class Tokeniser():
+    def __init__(self):
+        self.__logger = Logger()
+        self.__logger.println("tokeniser created")
+
     def tokenise_docs_to_lines(self, docs):
+        self.__logger.println("tokenising %s resumes by line" % len(docs))
         tokenised_docs = []
         for idx, file_content in enumerate(docs):
+            self.__logger.println("tokenising resume nr %s" % idx)
             tokenised_docs.append(file_content.splitlines())
+        self.__logger.println("completed tokenising %s resumes by line" % len(docs))
         return tokenised_docs
 
     def tokenise_doclines_to_words(self, docs):

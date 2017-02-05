@@ -75,10 +75,8 @@ class Extractor:
         self.logger.println("read %s file names" % counter)
 
     def __read_resume_content(self):
-        # files share an index
-        file_content = []
-        file_metadata = []
-
+        self.resume_content = []
+        self.resume_metadata = []
         # idxs of files that don't have content
         remove_files_idxs = []
         for idx, filename in enumerate(self.dataset_filenames):
@@ -89,16 +87,15 @@ class Extractor:
 
             # check if a supported file was processed successfully
             if "content" in extracted_information:
-                file_content.append(extracted_information["content"])
-                file_metadata.append(extracted_information["metadata"])
+                self.resume_content.append(extracted_information["content"])
+                self.resume_metadata.append(extracted_information["metadata"])
             else:
                 remove_files_idxs.append(idx)
 
         for idx in remove_files_idxs:
+            self.logger.println("removing unprocessed resume file at index %s named %s" % (idx, self.dataset_filenames[idx]))
             del self.dataset_filenames[idx]
 
-        self.resume_content = file_content
-        self.resume_metadata = file_metadata
         self.logger.println("read content from %s resume files" % len(self.resume_content))
 
     def __read_resume_labels(self):
@@ -117,9 +114,13 @@ class Extractor:
             if file_content is None:
                 remove_files_idxs.append(idx)
 
+        deleted_count = 0
         for idx in remove_files_idxs:
-            del self.dataset_filenames[idx]
-            del self.resume_content[idx]
+            self.logger.println("removing empty resume file at index %s named %s" % (idx, self.dataset_filenames[idx]))
+            del self.dataset_filenames[idx-deleted_count]
+            del self.resume_metadata[idx-deleted_count]
+            del self.resume_content[idx-deleted_count]
+            deleted_count += 1
         self.logger.println("removed empty resume files and total file count is at %s" % len(self.resume_content))
 
     def read_raw_files(self, nr_of_docs):
@@ -137,18 +138,6 @@ class Extractor:
         docs.append(extracted_information["content"])
         return docs
 
-    # temporary
-    def populate_file_names(self, nr_of_files=-1):
-        self.dataset_filenames = []
-        counter = 0
-        for filename in os.listdir(self.__dataset_raw_data_folder):
-            if filename.endswith(self.__file_ext_pdf) or filename.endswith(self.__file_ext_doc) or filename.endswith(self.__file_ext_docx):
-                filename, file_ext = os.path.splitext(filename)
-                self.dataset_filenames.append((filename, file_ext))
-                counter += 1
-                if counter == nr_of_files and nr_of_files != -1:
-                    break
-        self.logger.println("read %s file names" % counter)
 """
 ner_words = nltk.ne_chunk(pos_words)
 print(ner_words)

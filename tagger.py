@@ -169,7 +169,7 @@ class Tagger:
                 try:
                     new_nonlocal_ne_tag = nonlocal_ner_doc[line_idx][token_idx][1]
                     original_doc[line_idx][token_idx] = self.replace_nonlocal_ne_tag(original_doc[line_idx][token_idx], new_nonlocal_ne_tag)
-                catch IndexError:
+                except IndexError:
                     self.__logger.println("index out of range error while non local ner tagging")
                     self.__logger.println("line_idx %s token_idx %s" % (line_idx, token_idx))
         return original_doc
