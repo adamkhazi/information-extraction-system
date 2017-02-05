@@ -111,10 +111,15 @@ class Extractor:
         self.logger.println("read labels from %s xml files" % len(self.resume_labels))
 
     def __remove_empty_resumes(self):
+        # idxs of files that don't have content
+        remove_files_idxs = []
         for idx, file_content in enumerate(self.resume_content):
             if file_content is None:
-                del self.dataset_filenames[idx]
-                del self.resume_content[idx]
+                remove_files_idxs.append(idx)
+
+        for idx in remove_files_idxs:
+            del self.dataset_filenames[idx]
+            del self.resume_content[idx]
         self.logger.println("removed empty resume files and total file count is at %s" % len(self.resume_content))
 
     def read_raw_files(self, nr_of_docs):
@@ -132,6 +137,18 @@ class Extractor:
         docs.append(extracted_information["content"])
         return docs
 
+    # temporary
+    def populate_file_names(self, nr_of_files=-1):
+        self.dataset_filenames = []
+        counter = 0
+        for filename in os.listdir(self.__dataset_raw_data_folder):
+            if filename.endswith(self.__file_ext_pdf) or filename.endswith(self.__file_ext_doc) or filename.endswith(self.__file_ext_docx):
+                filename, file_ext = os.path.splitext(filename)
+                self.dataset_filenames.append((filename, file_ext))
+                counter += 1
+                if counter == nr_of_files and nr_of_files != -1:
+                    break
+        self.logger.println("read %s file names" % counter)
 """
 ner_words = nltk.ne_chunk(pos_words)
 print(ner_words)

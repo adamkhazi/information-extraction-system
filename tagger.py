@@ -156,7 +156,7 @@ class Tagger:
 
         # add nonlocal ner tag in tuple slots to return in same structure as inputted
         for tagged_doc_idx, tagged_doc in enumerate(tagged_resumes):
-            self.__logger.println("adding nonlocal tags to resume %s/%s " % (tagged_doc_idx, len(tagged_resumes)))
+            self.__logger.println("adding nonlocal tags to resume %s/%s" % (tagged_doc_idx+1, len(tagged_resumes)))
             resumes[tagged_doc_idx] = self.add_nonlocal_ner_tags(tagged_doc, resumes[tagged_doc_idx])
 
         self.__logger.println("completed nonlocal tagging resumes")
@@ -166,8 +166,12 @@ class Tagger:
     def add_nonlocal_ner_tags(self, nonlocal_ner_doc, original_doc):
         for line_idx, line in enumerate(original_doc):
             for token_idx, token in enumerate(line):
-                new_nonlocal_ne_tag = nonlocal_ner_doc[line_idx][token_idx][1]
-                original_doc[line_idx][token_idx] = self.replace_nonlocal_ne_tag(original_doc[line_idx][token_idx], new_nonlocal_ne_tag)
+                try:
+                    new_nonlocal_ne_tag = nonlocal_ner_doc[line_idx][token_idx][1]
+                    original_doc[line_idx][token_idx] = self.replace_nonlocal_ne_tag(original_doc[line_idx][token_idx], new_nonlocal_ne_tag)
+                catch IndexError:
+                    self.__logger.println("index out of range error while non local ner tagging")
+                    self.__logger.println("line_idx %s token_idx %s" % (line_idx, token_idx))
         return original_doc
 
     def replace_nonlocal_ne_tag(self, original_tuple, new_tag):
