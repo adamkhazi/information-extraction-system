@@ -117,15 +117,15 @@ class CliMenu():
 
         model_name = "test_NER.crfsuite"
         trainer = cs.train_model(train_features, y_train, model_name)
-        print("printing training results")
         y_train_pred = cs.test_model(model_name, train_features, y_train)
-        print("printing test results")
         y_test_pred = cs.test_model(model_name, test_features, y_test)
 
+        print("printing training results")
         cs.print_classification_report(dataset.docs2lines(y_train), y_train_pred)
         score_train = cs.score_model(dataset.docs2lines(y_train), y_train_pred)
         print("training f1 score: %s" % score_train)
 
+        print("printing test results")
         cs.print_classification_report(dataset.docs2lines(y_test), y_test_pred)
         score_test = cs.score_model(dataset.docs2lines(y_test), y_test_pred)
         print("test f1 score: %s" % score_test)
