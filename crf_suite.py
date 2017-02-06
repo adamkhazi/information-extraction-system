@@ -65,16 +65,15 @@ class CrfSuite(Tags):
     def score_model(self, y_true, y_pred):
         lb = LabelBinarizer()
 
-        pdb.set_trace()
         y_true_combined = lb.fit_transform(list(chain.from_iterable(y_true)))
         y_pred_combined = lb.transform(list(chain.from_iterable(y_pred)))
 
-        tagset = set(lb.classes_)
+        tagset = set(lb.classes_) - {'O'}
         tagset = sorted(tagset, key=lambda tag: tag.split('-', 1)[::-1])
 
         class_indices = {cls: idx for idx, cls in enumerate(lb.classes_)}
 
-        return f1_score(y_true_combined, y_pred_combined, labels = [class_indices[cls] for cls in tagset], target_names = tagset)
+        return f1_score(y_true_combined, y_pred_combined, average="weighted", labels = [class_indices[cls] for cls in tagset])
 
     def print_classification_report(self, y_true, y_pred):
         lb = LabelBinarizer()

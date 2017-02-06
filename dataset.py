@@ -88,3 +88,11 @@ class Dataset():
 
         self.__logger.println("encode_dataset: " + str(word_idx) + " unique words")
         return word2count, word2idx
+
+    # flatten a doc list into lines
+    def docs2lines(self, docs):
+        lines = []
+        for doc in docs:
+            for line in doc:
+                lines.append(line)
+        return lines

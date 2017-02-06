@@ -122,14 +122,13 @@ class CliMenu():
         print("printing test results")
         y_test_pred = cs.test_model(model_name, test_features, y_test)
 
-        """
-        cs.print_classification_report(y_train, y_train_pred)
-        pdb.set_trace()
-        cs.print_classification_report(y_test, y_test_pred)
+        cs.print_classification_report(dataset.docs2lines(y_train), y_train_pred)
+        score_train = cs.score_model(dataset.docs2lines(y_train), y_train_pred)
+        print("training f1 score: %s" % score_train)
 
-        score_train = cs.score_model(y_train, y_train_pred)
-        score_test = cs.score_model(y_test, y_test_pred)
-        """
+        cs.print_classification_report(dataset.docs2lines(y_test), y_test_pred)
+        score_test = cs.score_model(dataset.docs2lines(y_test), y_test_pred)
+        print("test f1 score: %s" % score_test)
 
         elapsed_seconds = timeit.default_timer() - start_time
         self.logger.print_time_taken("train model operation took", elapsed_seconds)
