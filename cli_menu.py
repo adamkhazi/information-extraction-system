@@ -103,7 +103,6 @@ class CliMenu():
         train_set, test_set = dataset.split_dataset(data)
 
         we_model = WeModel()
-        # pass by value to avoid original list changing
         w2v_model = we_model.train(train_set) # optionally load a pretrained model here 
         we_model.save(w2v_model)
 
@@ -122,6 +121,15 @@ class CliMenu():
         y_train_pred = cs.test_model(model_name, train_features, y_train)
         print("printing test results")
         y_test_pred = cs.test_model(model_name, test_features, y_test)
+
+        """
+        cs.print_classification_report(y_train, y_train_pred)
+        pdb.set_trace()
+        cs.print_classification_report(y_test, y_test_pred)
+
+        score_train = cs.score_model(y_train, y_train_pred)
+        score_test = cs.score_model(y_test, y_test_pred)
+        """
 
         elapsed_seconds = timeit.default_timer() - start_time
         self.logger.print_time_taken("train model operation took", elapsed_seconds)

@@ -12,7 +12,7 @@ import scipy.stats
 import pdb
 
 from itertools import chain
-from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.metrics import classification_report, confusion_matrix, f1_score
 from sklearn.preprocessing import LabelBinarizer
 from sklearn.metrics import make_scorer
 from sklearn.cross_validation import cross_val_score
@@ -62,7 +62,21 @@ class CrfSuite(Tags):
         trainer.train(model_name)
         return trainer
 
-    def basic_classification_report(self, y_true, y_pred):
+    def score_model(self, y_true, y_pred):
+        lb = LabelBinarizer()
+
+        pdb.set_trace()
+        y_true_combined = lb.fit_transform(list(chain.from_iterable(y_true)))
+        y_pred_combined = lb.transform(list(chain.from_iterable(y_pred)))
+
+        tagset = set(lb.classes_)
+        tagset = sorted(tagset, key=lambda tag: tag.split('-', 1)[::-1])
+
+        class_indices = {cls: idx for idx, cls in enumerate(lb.classes_)}
+
+        return f1_score(y_true_combined, y_pred_combined, labels = [class_indices[cls] for cls in tagset], target_names = tagset)
+
+    def print_classification_report(self, y_true, y_pred):
         lb = LabelBinarizer()
 
         y_true_combined = lb.fit_transform(list(chain.from_iterable(y_true)))
@@ -74,7 +88,7 @@ class CrfSuite(Tags):
         class_indices = {cls: idx for idx, cls in enumerate(lb.classes_)}
 
         # TODO return f1 score or other wise here: http://scikit-learn.org/stable/modules/classes.html#module-sklearn.metrics
-        return classification_report(y_true_combined, y_pred_combined, labels = [class_indices[cls] for cls in tagset], target_names = tagset)
+        print(classification_report(y_true_combined, y_pred_combined, labels = [class_indices[cls] for cls in tagset], target_names = tagset))
 
     def load_tagger(self):
         self.__trained_tagger = pycrfsuite.Tagger()
