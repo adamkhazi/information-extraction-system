@@ -47,6 +47,7 @@ coverage.xml
 
 # w2v model
 generated_w2v_model
+w2v_model
 
 # Translations
 *.mo
