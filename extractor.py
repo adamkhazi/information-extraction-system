@@ -6,6 +6,7 @@ import html
 import textract
 
 import xml.etree.cElementTree as ET
+from os.path import expanduser
 
 from tika import parser
 from nltk.tokenize import RegexpTokenizer
@@ -13,6 +14,10 @@ from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 
 from logger import Logger
+home = expanduser("~") + "/"
+os.environ['JAVA_HOME'] = "/usr/lib/jvm/java-8-openjdk-amd64"
+os.environ['CLASSPATH'] = home + "tika-app-1.14.jar"
+from jnius import autoclass
 
 # This class extracts content from resume files of various formats.
 # Also it extracts content from XML files and turns them into Python objects.
@@ -31,39 +36,45 @@ class Extractor:
         self.logger = Logger()
         self.logger.println("extractor created")
 
+    def replace_dash(self, label):
+        if label.rstrip().lstrip() == "-":
+            return ""
+        else:
+            return label
+
     def get_edu_majors(self, label_set):
         edu_major_list = label_set.findall("Education/edu_major")
         if not edu_major_list:
             return []
         else:
-            return [html.unescape(major.text) for major in edu_major_list if major.text is not None]
+            return [self.replace_dash(html.unescape(major.text)) for major in edu_major_list if major.text is not None]
 
     def get_edu_institutions(self, label_set):
         edu_inst_list = label_set.findall("Education/edu_inst_name")
         if not edu_inst_list:
             return []
         else:
-            return [html.unescape(inst.text) for inst in edu_inst_list if inst.text is not None]
+            return [self.replace_dash(html.unescape(inst.text)) for inst in edu_inst_list if inst.text is not None]
 
     def get_company_names(self, label_set):
         company_list = label_set.findall("Jobs/job_company_name")
         if not company_list:
             return []
         else:
-            return [html.unescape(company.text) for company in company_list if company.text is not None]
+            return [self.replace_dash(html.unescape(company.text)) for company in company_list if company.text is not None]
 
     def get_job_titles(self, label_set):
         job_list = label_set.findall("Jobs/job_position")
         if not job_list:
             return []
         else:
-            return [html.unescape(j_title.text) for j_title in job_list if j_title.text is not None]
+            return [self.replace_dash(html.unescape(j_title.text)) for j_title in job_list if j_title.text is not None]
 
     def get_dataset_folder(self):
         return self.__dataset_raw_data_folder
 
     # file names examples, nr_of_file: -1 is limitless
-    def __populate_file_names(self, nr_of_files=-1):
+    def populate_file_names(self, nr_of_files=-1):
         self.dataset_filenames = []
         counter = 0
         for filename in os.listdir(self.__dataset_raw_data_folder):
@@ -80,26 +91,37 @@ class Extractor:
         self.resume_metadata = []
         # idxs of files that don't have content
         remove_files_idxs = []
+
+        Tika = autoclass('org.apache.tika.Tika') 
+        Metadata = autoclass('org.apache.tika.metadata.Metadata') 
+        FileInputStream = autoclass('java.io.FileInputStream') 
+        tika = Tika() 
+        meta = Metadata() 
+
         for idx, filename in enumerate(self.dataset_filenames):
-            self.logger.println("sending resume %s/%s to tika" % (idx, len(self.dataset_filenames)-1) )
+            self.logger.println("extracting from resume %s/%s with tika" % (idx, len(self.dataset_filenames)-1) )
             # append filename + ext to path
             filepath = self.__dataset_raw_data_folder + self.__file_path_seperator + filename[0] + filename[1]
-            extracted_information = parser.from_file(filepath)
+            try:
+                extracted_information = tika.parseToString(FileInputStream(filepath), meta) 
+            except:
+                extracted_information = ""
 
             # check if a supported file was processed successfully
-            if "content" in extracted_information:
-                self.resume_content.append(extracted_information["content"])
-                self.resume_metadata.append(extracted_information["metadata"])
+            if len(extracted_information) > 0:
+                self.resume_content.append(extracted_information)
             else:
                 remove_files_idxs.append(idx)
 
+        delete_count = 0
         for idx in remove_files_idxs:
-            self.logger.println("removing unprocessed resume file at index %s named %s" % (idx, self.dataset_filenames[idx]))
-            del self.dataset_filenames[idx]
+            self.logger.println("removing unprocessed resume file at index %s named %s" % (idx-delete_count, self.dataset_filenames[idx-delete_count]))
+            del self.dataset_filenames[idx-delete_count]
+            delete_count += 1
 
         self.logger.println("read content from %s resume files" % len(self.resume_content))
 
-    def __read_resume_labels(self):
+    def read_resume_labels(self):
         resume_labels = []
         for idx, filename in enumerate(self.dataset_filenames):
             filepath = self.__dataset_raw_data_folder + self.__file_path_seperator + filename[0] + self.__file_ext_xml
@@ -108,7 +130,7 @@ class Extractor:
         self.resume_labels = resume_labels
         self.logger.println("read labels from %s xml files" % len(self.resume_labels))
 
-    def __remove_empty_resumes(self):
+    def remove_empty_resumes(self):
         # idxs of files that don't have content
         remove_files_idxs = []
         for idx, file_content in enumerate(self.resume_content):
@@ -125,10 +147,11 @@ class Extractor:
         self.logger.println("removed empty resume files and total file count is at %s" % len(self.resume_content))
 
     def read_raw_files(self, nr_of_docs):
-        self.__populate_file_names(nr_of_docs)
+        self.populate_file_names(nr_of_docs)
         self.__read_resume_content()
-        self.__remove_empty_resumes()
-        self.__read_resume_labels()
+        #self.read_resume_content_txtract()
+        self.remove_empty_resumes()
+        self.read_resume_labels()
         return self.resume_content, self.resume_labels
 
     # method is required when parsing and tagging a single file, mostly for
@@ -139,27 +162,34 @@ class Extractor:
         docs.append(extracted_information["content"])
         return docs
 
-    def read_resume_content_txtract(self, resumes):
+    def read_resume_content_txtract(self):
         self.logger.println("extracting resume content using textract")
         self.resume_content = []
         # idxs of files that don't have content
         remove_files_idxs = []
         for idx, filename in enumerate(self.dataset_filenames):
-            self.logger.println("sending resume %s/%s to tika" % (idx+1, len(self.dataset_filenames)) )
+            self.logger.println("extracting from resume %s/%s using txtract" % (idx+1, len(self.dataset_filenames)) )
             # append filename + ext to path
             filepath = self.__dataset_raw_data_folder + self.__file_path_seperator + filename[0] + filename[1]
-            extracted_bytes = textract.process(filepath, encoding="utf_8")
-            extracted_str = extracted_bytes.decode("utf-8")
-
-            # check if file has content
-            if len(extracted_str.split()) > 0:
+            extracted_str = ""
+            try:
+                extracted_bytes = textract.process(filepath, encoding="utf_8")
+                extracted_str = extracted_bytes.decode("utf-8")
                 self.resume_content.append(extracted_str)
-            else:
+            except:
+                self.logger.println("txtract threw an error")
                 remove_files_idxs.append(idx)
 
+            """
+            # check if file has content
+            if len(extracted_str.split()) > 0:
+            else:
+                remove_files_idxs.append(idx)
+            """
+        deleted_idxs = 0
         for idx in remove_files_idxs:
             self.logger.println("removing unprocessed resume file at index %s named %s" % (idx, self.dataset_filenames[idx]))
-            del self.dataset_filenames[idx]
+            del self.dataset_filenames[idx-deleted_idxs]
 
         self.logger.println("read content from %s resume files" % len(self.resume_content))
 

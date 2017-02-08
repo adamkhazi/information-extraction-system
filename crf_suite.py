@@ -47,14 +47,14 @@ class CrfSuite(Tags):
         self.logger.println("pycrfsuite Trainer has data")
 
         trainer.set_params({
-            'c1': 0.2,   # coefficient for L1 penalty
-            'c2': 0.2,  # coefficient for L2 penalty
-            'max_iterations': 100,  # stop earlier
+            'c1': 0.00001,   # coefficient for L1 penalty
+            'c2': 0.00001,  # coefficient for L2 penalty
+            'max_iterations': 250,  # stop earlier
 
             # include states features that do not even occur in the training
             # data, crfsuite creates all possible associations between
             # attirbutes and labels - enabling improves label accuracy
-            'feature.possible_states': True,
+            #'feature.possible_states': True,
             # include transitions that are possible, but not observed
             'feature.possible_transitions': True
         })

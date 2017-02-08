@@ -59,6 +59,7 @@ class Annotator():
         prepared_doc = self.__match_entity(prepared_doc, job_company_list, self.__job_company_tag)
         prepared_doc = self.__match_entity(prepared_doc, edu_major_list, self.__education_course_tag)
         prepared_doc = self.__match_entity(prepared_doc, edu_inst_list, self.__education_institution_tag)
+        prepared_doc = self.__tagger.add_default_entity_tags(prepared_doc)
 
         prepared_doc = self.__tagger.pos_tag(prepared_doc)
 

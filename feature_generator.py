@@ -41,15 +41,18 @@ class FeatureGenerator():
                 'line.size': float(len(line)),
                 'pos': postag,
                 'pos[-3:]': postag[-3:],
-                'pos[-2:]': postag[-2:]
-                #'nonlocalner': nonlocalnertag
+                'pos[-2:]': postag[-2:],
+                'nonlocalner': nonlocalnertag
         }
 
+        # TODO make this a method
+        """
         try:
             for d_idx, dimension in enumerate(self.__we_model[word.lower()]):
                 features["we_dimen_"+str(d_idx)] = dimension
         except KeyError:
             features["we_dimen_"+str(0)] = "UNKNOWN"
+        """
 
         if token_idx > 0:
             word1 = line[token_idx-1][0]
@@ -58,10 +61,10 @@ class FeatureGenerator():
 
             features['word-1'] = word1.lower()
             features['pos-1'] = postag1
-            features['posbigram-1'] = postag1 + postag
+            #features['posbigram-1'] = postag1 + postag
             features['pos[-3:]'] = postag1[-3:]
             features['pos[-2:]'] = postag1[-2:]
-            features['bigram-1'] = word1.lower() + word.lower()
+            features['bigram-1'] = word1.lower() + '|' + word.lower()
             features['word-1.isupper'] = word1.isupper()
             features['word-1.istitle'] = word1.istitle()
             features['word-1.isdigit'] = word1.isdigit()
@@ -69,8 +72,9 @@ class FeatureGenerator():
             features['word-1[-2:]'] = word1[-2:]
             features['word.freq'] = self.word_to_count(word1)
             features['word-1.idx']= float(token_idx-1)
+            features['nonlocalner'] = nonlocalnertag1
         else:
-            features['bigram-1'] = "BOL" + word.lower()
+            #features['bigram-1'] = "BOL" + word.lower()
             features['BOL'] = 1.0
 
         if token_idx < len(line)-1:
@@ -80,10 +84,10 @@ class FeatureGenerator():
 
             features['word+1'] = word1.lower()
             features['pos+1'] = postag1
-            features['posbigram+1'] = postag + postag1
+            #features['posbigram+1'] = postag + postag1
             features['pos[-3:]'] = postag1[-3:]
             features['pos[-2:]'] = postag1[-2:]
-            features['bigram+1'] = word.lower() + word1.lower()
+            features['bigram+1'] = word.lower() + '|' + word1.lower()
             features['word+1.isupper'] = word1.isupper()
             features['word+1.istitle'] = word1.istitle()
             features['word+1.isdigit'] = word1.isdigit()
@@ -91,24 +95,23 @@ class FeatureGenerator():
             features['word+1[-2:]'] = word1[-2:]
             features['word.freq'] = self.word_to_count(word1)
             features['word+1.idx']= float(token_idx+1)
+            features['nonlocalner'] = nonlocalnertag1
         else:
-            features['bigram+1'] = word.lower() + "EOL"
+            #features['bigram+1'] = word.lower() + "EOL"
             features['EOL'] = 1.0
 
+        """
         if token_idx > 0 and token_idx < len(line)-1:
             word1behind = line[token_idx-1][0]
             word1ahead = line[token_idx+1][0]
-            features['trigram-1+1'] = word1behind.lower() + word.lower() + word1ahead.lower()
+            #features['trigram-1+1'] = word1behind.lower() + word.lower() + word1ahead.lower()
+        """
 
         if line_idx == 0:
             features['BOD'] = 1.0
-        else:
-            features['BOD'] = 0.0
 
         if line_idx == doc_size:
             features['EOD'] = 1.0
-        else:
-            features['EOD'] = 0.0
 
         return features
 
