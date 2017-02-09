@@ -17,8 +17,13 @@ from sklearn.preprocessing import LabelBinarizer
 from sklearn.metrics import make_scorer
 from sklearn.cross_validation import cross_val_score
 from sklearn.grid_search import RandomizedSearchCV
+from sklearn.model_selection import learning_curve
+from sklearn.model_selection import ShuffleSplit
 from sklearn_crfsuite import scorers
 from sklearn_crfsuite import metrics
+import matplotlib.pyplot as plt
+import numpy as np
+import sklearn_crfsuite
 
 from generate_dataset import GenerateDataset
 from dataset import Dataset
@@ -61,6 +66,19 @@ class CrfSuite(Tags):
         print(trainer.params())
         trainer.train(model_name)
         return trainer
+
+    def score_model_temp(self, est, y_true, y_pred):
+        lb = LabelBinarizer()
+
+        y_true_combined = lb.fit_transform(list(chain.from_iterable(y_true)))
+        y_pred_combined = lb.transform(list(chain.from_iterable(y_pred)))
+
+        tagset = set(lb.classes_) - {'O'}
+        tagset = sorted(tagset, key=lambda tag: tag.split('-', 1)[::-1])
+
+        class_indices = {cls: idx for idx, cls in enumerate(lb.classes_)}
+
+        return f1_score(y_true_combined, y_pred_combined, average="weighted", labels = [class_indices[cls] for cls in tagset])
 
     def score_model(self, y_true, y_pred):
         lb = LabelBinarizer()
@@ -175,4 +193,42 @@ class CrfSuite(Tags):
         # search
         rs = RandomizedSearchCV(crf, params_space, cv=3, verbose=1, n_jobs=-1, n_iter=50, scoring=f1_scorer)
         rs.fit(xseq, yseq)
+    
+    def plot_learning_curve(self, X, y):
+        train_sizes=np.linspace(.1, 1.0, 5)
+        n_jobs=8
+        title = "Learning Curves"
+        cv = ShuffleSplit(n_splits=10, test_size=0.2, random_state=0)
+        plt.figure()
+        plt.title(title)
+        ylim = (0.01, 1.01)
+        if ylim is not None:
+            plt.ylim(*ylim)
+        plt.xlabel("Training examples")
+        plt.ylabel("Score")
 
+        X_lines = []
+        y_lines = []
+        for doc_x, doc_y in zip(X, y):
+            for line_idx, line in enumerate(doc_x):
+                X_lines.append(line)
+                y_lines.append(doc_y[line_idx])
+
+        estimator = sklearn_crfsuite.CRF(algorithm='lbfgs', c1=0.1, c2=0.1, max_iterations=100, all_possible_transitions=True, verbose=True)
+        custom_scorer = make_scorer(self.score_model, greater_is_better=True)
+
+        #train_sizes, train_scores, test_scores = learning_curve(estimator, X_lines, y_lines, cv=cv, n_jobs=n_jobs, train_sizes=train_sizes)
+        train_sizes, train_scores, test_scores = learning_curve(estimator, X_lines, y_lines, cv=cv, scoring=custom_scorer, n_jobs=n_jobs, train_sizes=train_sizes)
+        train_scores_mean = np.mean(train_scores, axis=1)
+        train_scores_std = np.std(train_scores, axis=1)
+        test_scores_mean = np.mean(test_scores, axis=1)
+        test_scores_std = np.std(test_scores, axis=1)
+        plt.grid()
+
+        plt.fill_between(train_sizes, train_scores_mean - train_scores_std, train_scores_mean + train_scores_std, alpha=0.1, color="r")
+        plt.fill_between(train_sizes, test_scores_mean - test_scores_std, test_scores_mean + test_scores_std, alpha=0.1, color="g")
+        plt.plot(train_sizes, train_scores_mean, 'o-', color="r", label="Training score")
+        plt.plot(train_sizes, test_scores_mean, 'o-', color="g", label="Cross-validation score")
+
+        plt.legend(loc="best")
+        return plt

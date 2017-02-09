@@ -2,15 +2,17 @@ import sys
 import timeit
 import pdb
 
-from generate_dataset import GenerateDataset
 from crf_suite import CrfSuite
+import matplotlib.pyplot as plt
+
+from feature_generator import FeatureGenerator
+from generate_dataset import GenerateDataset
 from annotator import Annotator
 from api import API
 from logger import Logger
 from evaluator import Evaluator
 from dataset import Dataset
 from we_model import WeModel
-from feature_generator import FeatureGenerator
 
 class CliMenu():
     __argument_train = "-t"
@@ -18,6 +20,7 @@ class CliMenu():
     __argument_annotate_dataset = "-a"
     __argument_api = "-rn"
     __argument_evaluate = "-e"
+    __argument_train_w_learning_curve = "-lc"
 
     def __init__(self):
         self.logger = Logger()
@@ -31,6 +34,9 @@ class CliMenu():
                 self.train_model(nr_of_files=int(sys.argv[2]))
             else:
                 self.train_model()
+
+        elif command_arg == self.__argument_train_w_learning_curve:
+            self.train_model_learning_curve(int(sys.argv[2]))
 
         elif command_arg == self.__argument_optimise:
             self.optimise_model()
@@ -52,7 +58,7 @@ class CliMenu():
 
         else:
             print("Commands accepted:")
-            print("train: -t <number_of_documents>(default is all available documents")
+            print("train: -t <number_of_documents>(default is all available documents)")
             print("hyperparameter optimisation: -o")
             print("annotate dataset: -a <number_of_documents>(default is all available documents")
             print("run api: -rn")
@@ -135,6 +141,7 @@ class CliMenu():
 
         evaluator = Evaluator()
         evaluator.perform_roc_analysis(dataset.docs2lines(y_train), y_train_pred)
+        evaluator.perform_roc_analysis(dataset.docs2lines(y_test), y_test_pred)
 
     def run_api(self):
         self.logger.println("api called")
@@ -154,6 +161,30 @@ class CliMenu():
         print(training_scores)
         print("test scores")
         print(test_scores)
+
+        elapsed_seconds = timeit.default_timer() - start_time
+        self.logger.print_time_taken("train model operation took", elapsed_seconds)
+
+    def train_model_learning_curve(self, arg):
+        self.logger.println("train model called")
+        start_time = timeit.default_timer()
+
+        cs = CrfSuite()
+
+        dataset = Dataset()
+        data = dataset.read(nr_of_files=arg)
+        train_set, test_set = dataset.split_dataset(data)
+
+        we_model = WeModel()
+        w2v_model = we_model.train(train_set) # optionally load a pretrained model here 
+        word2count, word2idx = dataset.encode_dataset(train_set)
+
+        f_generator = FeatureGenerator(w2v_model, word2count, word2idx)
+        train_features = f_generator.generate_features_docs(train_set)
+        y_train = f_generator.generate_true_outcome(train_set)
+
+        cs.plot_learning_curve(train_features, y_train)
+        plt.show()
 
         elapsed_seconds = timeit.default_timer() - start_time
         self.logger.print_time_taken("train model operation took", elapsed_seconds)
