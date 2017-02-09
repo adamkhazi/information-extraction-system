@@ -74,10 +74,14 @@ class Tagger:
                     break
                     idx += max(1, (label_str_len-1))
 
+        return self.line_list_transform(content_flat_list, length_of_lines)
+
+    # add default (normally "O") tags to empty slots
+    def add_default_entity_tags(self, doc):
+        content_flat_list, length_of_lines = self.flat_token_list_transform(doc)
         for token_idx, token in enumerate(content_flat_list):
             if content_flat_list[token_idx][3] == self.__empty_string:
                 content_flat_list[token_idx] = self.replace_ner_tag(content_flat_list[token_idx], self.__outside_tag)
-
         return self.line_list_transform(content_flat_list, length_of_lines)
 
     def replace_ner_tag(self, original_tuple, new_tag):
@@ -142,7 +146,7 @@ class Tagger:
     def nonlocal_ner_tag(self, resumes):
         self.__logger.println("nonlocal tagging resumes")
         # do not tokenise text
-        nltk.internals.config_java(options='-tokenizerFactory edu.stanford.nlp.process.WhitespaceTokenizer -tokenizerOptions "tokenizeNLs=true"')
+        nltk.internals.config_java(options='-tokenizerFactory edu.stanford.nlp.process.WhitespaceTokenizer -tokenizerOptions "tokenizeNLs=false"')
 
         copied_resumes = copy.deepcopy(resumes)
         for doc_idx, doc in enumerate(copied_resumes):

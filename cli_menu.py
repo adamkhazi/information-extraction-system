@@ -1,17 +1,23 @@
 import sys
 import timeit
+import pdb
 
 from generate_dataset import GenerateDataset
 from crf_suite import CrfSuite
 from annotator import Annotator
 from api import API
 from logger import Logger
+from evaluator import Evaluator
+from dataset import Dataset
+from we_model import WeModel
+from feature_generator import FeatureGenerator
 
 class CliMenu():
     __argument_train = "-t"
     __argument_optimise = "-o"
     __argument_annotate_dataset = "-a"
     __argument_api = "-rn"
+    __argument_evaluate = "-e"
 
     def __init__(self):
         self.logger = Logger()
@@ -38,12 +44,19 @@ class CliMenu():
         elif command_arg == self.__argument_api:
             self.run_api()
 
+        elif command_arg == self.__argument_evaluate:
+            if len(sys.argv) > 2:
+                self.evaluate_model(sys.argv[2])
+            else:
+                print("evaluate model option needs an extra parameter")
+
         else:
             print("Commands accepted:")
-            print("train: -t <number_of_documents>")
-            print("optimise: -o")
-            print("annotate dataset: -a <number_of_documents>")
+            print("train: -t <number_of_documents>(default is all available documents")
+            print("hyperparameter optimisation: -o")
+            print("annotate dataset: -a <number_of_documents>(default is all available documents")
             print("run api: -rn")
+            print("evaluate model: -e [-b train and analyse performance using bootstrapping]|[-r perform roc analysis]")
 
     def annotate_db_data(self):
         """
@@ -84,22 +97,66 @@ class CliMenu():
         self.logger.println("train model called")
         start_time = timeit.default_timer()
         cs = CrfSuite()
-        cs.get_dataset(nr_of_files=nr_of_files)
-        #cs.load_embeddings()
-        cs.generate_embeddings()
-        cs.encode_dataset()
 
-        cs.split_dataset()
-        cs.generate_features()
-        cs.train_model()
-        cs.test_model()
+        dataset = Dataset()
+        data = dataset.read(nr_of_files=nr_of_files)
+        train_set, test_set = dataset.split_dataset(data)
+
+        we_model = WeModel()
+        w2v_model = we_model.train(train_set) # optionally load a pretrained model here 
+        we_model.save(w2v_model)
+
+        word2count, word2idx = dataset.encode_dataset(train_set)
+
+        f_generator = FeatureGenerator(w2v_model, word2count, word2idx)
+        train_features = f_generator.generate_features_docs(train_set)
+        y_train = f_generator.generate_true_outcome(train_set)
+
+        test_features = f_generator.generate_features_docs(test_set)
+        y_test = f_generator.generate_true_outcome(test_set)
+
+        model_name = "test_NER.crfsuite"
+        trainer = cs.train_model(train_features, y_train, model_name)
+        y_train_pred = cs.test_model(model_name, train_features)
+        y_test_pred = cs.test_model(model_name, test_features)
+
+        print("printing training results")
+        cs.print_classification_report(dataset.docs2lines(y_train), y_train_pred)
+        score_train = cs.score_model(dataset.docs2lines(y_train), y_train_pred)
+        print("training f1 score: %s" % score_train)
+
+        print("printing test results")
+        cs.print_classification_report(dataset.docs2lines(y_test), y_test_pred)
+        score_test = cs.score_model(dataset.docs2lines(y_test), y_test_pred)
+        print("test f1 score: %s" % score_test)
+
         elapsed_seconds = timeit.default_timer() - start_time
         self.logger.print_time_taken("train model operation took", elapsed_seconds)
+
+        evaluator = Evaluator()
+        evaluator.perform_roc_analysis(dataset.docs2lines(y_train), y_train_pred)
 
     def run_api(self):
         self.logger.println("api called")
         api = API()
         api.run()
+
+    def evaluate_model(self, arg):
+        self.logger.println("train model called")
+        start_time = timeit.default_timer()
+
+        self.logger.println("evaluate model called")
+        evaluator = Evaluator()
+        dataset = Dataset()
+        data = dataset.read(1000)
+        training_scores, test_scores = evaluator.perform_bootstrapping(data, 700, 10)
+        print("training scores")
+        print(training_scores)
+        print("test scores")
+        print(test_scores)
+
+        elapsed_seconds = timeit.default_timer() - start_time
+        self.logger.print_time_taken("train model operation took", elapsed_seconds)
 
 if __name__ == '__main__':
     CliMenu().perform_command()
