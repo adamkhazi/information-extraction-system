@@ -3,6 +3,7 @@ import io
 import csv
 import glob
 import math
+from random import shuffle
 
 from logger import Logger
 
@@ -38,7 +39,6 @@ class Dataset():
     def read(self, nr_of_files=-1):
         dataset_docs = []
         count = 0
-        wrongly_formed_files = set()
         for filename in os.listdir(self.__dataset_folder):
             count += 1
             current_file_path = self.__dataset_folder + "/" + filename
@@ -53,17 +53,19 @@ class Dataset():
                             single_line = []
                         else:
                             single_line.append((row[0], row[1], row[2], row[3]))
-                            if len(row[3]) < 1:
-                                wrongly_formed_files.add(filename)
                     dataset_docs.append(single_doc)
             if count == nr_of_files and nr_of_files != -1:
                 break
         self.resume_content = dataset_docs
         self.__logger.println("read %s files from: " % len(self.resume_content) + self.__dataset_folder)
-        # temporary
-        print(wrongly_formed_files)
+        self.resume_content = self.shuffle_data(self.resume_content)
         return self.resume_content
 
+    def shuffle_data(self, data):
+        self.__logger.println("shuffling dataset")
+        shuffle(data)
+        return data
+        
     def read_doc(self, filename):
         current_file_path = self.__dataset_folder + "/" + filename
         single_doc = []

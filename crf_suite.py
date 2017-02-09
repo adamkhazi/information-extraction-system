@@ -47,9 +47,9 @@ class CrfSuite(Tags):
         self.logger.println("pycrfsuite Trainer has data")
 
         trainer.set_params({
-            'c1': 0.00001,   # coefficient for L1 penalty
-            'c2': 0.00001,  # coefficient for L2 penalty
-            'max_iterations': 250,  # stop earlier
+            'c1': 0.001,   # coefficient for L1 penalty
+            'c2': 0.001,  # coefficient for L2 penalty
+            'max_iterations': 400,  # stop earlier
 
             # include states features that do not even occur in the training
             # data, crfsuite creates all possible associations between
@@ -126,22 +126,18 @@ class CrfSuite(Tags):
         return identified_entities
 
     # use an existing model to tag data
-    def test_model(self, model_name, features, y):
+    def test_model(self, model_name, features):
         tagger = pycrfsuite.Tagger()
         tagger.open(model_name)
         # transformed data
         docs_x_test = []
-        docs_y_test_true = []
 
-        for doc_x, doc_y in zip(features, y):
+        for doc_x in features:
             xseq = []
-            yseq = []
             for line_idx, line in enumerate(doc_x):
                 for token_idx, token in enumerate(line):
                     xseq.append(token)
-                    yseq.append(doc_y[line_idx][token_idx])
             docs_x_test.append(xseq)
-            docs_y_test_true.append(yseq)
 
         y_pred = [tagger.tag(doc) for doc in docs_x_test]
         return y_pred
