@@ -180,11 +180,3 @@ class CrfSuite(Tags):
         rs = RandomizedSearchCV(crf, params_space, cv=3, verbose=1, n_jobs=-1, n_iter=50, scoring=f1_scorer)
         rs.fit(xseq, yseq)
 
-    def perform_bootstrapping(self, sample_size, iterations, with_replacement=True):
-        for x in range(0, iterations):
-            sample = np.random.choice(self.total_sents, len(self.total_sents), with_replacement)
-            # generate features
-            self.generate_features(sample)
-            # train model 
-            # test model and save results
-

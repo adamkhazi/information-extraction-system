@@ -139,9 +139,21 @@ class CliMenu():
         api.run()
 
     def evaluate_model(self, arg):
+        self.logger.println("train model called")
+        start_time = timeit.default_timer()
+
         self.logger.println("evaluate model called")
         evaluator = Evaluator()
+        dataset = Dataset()
+        data = dataset.read(1000)
+        training_scores, test_scores = evaluator.perform_bootstrapping(data, 700, 10)
+        print("training scores")
+        print(training_scores)
+        print("test scores")
+        print(test_scores)
 
+        elapsed_seconds = timeit.default_timer() - start_time
+        self.logger.print_time_taken("train model operation took", elapsed_seconds)
 
 if __name__ == '__main__':
     CliMenu().perform_command()
