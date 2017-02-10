@@ -130,10 +130,9 @@ class CliMenu():
         test_features = f_generator.generate_features_docs(test_set)
         y_test = f_generator.generate_true_outcome(test_set)
 
-        model_name = "test_NER.crfsuite"
-        trainer = cs.train_model(train_features, y_train, model_name)
-        y_train_pred = cs.test_model(model_name, train_features)
-        y_test_pred = cs.test_model(model_name, test_features)
+        model = cs.train_model(train_features, y_train)
+        y_train_pred = cs.test_model(model, train_features)
+        y_test_pred = cs.test_model(model, test_features)
 
         print("printing training results")
         cs.print_classification_report(dataset.docs2lines(y_train), y_train_pred)

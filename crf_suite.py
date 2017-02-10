@@ -22,6 +22,7 @@ from sklearn.model_selection import ShuffleSplit
 from sklearn_crfsuite import scorers
 from sklearn_crfsuite import metrics
 import matplotlib.pyplot as plt
+plt.style.use('ggplot')
 import numpy as np
 import sklearn_crfsuite
 
@@ -35,37 +36,17 @@ class CrfSuite(Tags):
 
     def __init__(self):
         self.logger = Logger()
+        self.logger.println("CrfSuite created")
 
-    def train_model(self, X, y, model_name):
-        trainer = pycrfsuite.Trainer(verbose=True)
-        self.logger.println("pycrfsuite Trainer init")
+    def train_model(self, X, y):
+        self.logger.println("transforming data to train model")
+        X_combined = list(chain.from_iterable(X))
+        y_combined = list(chain.from_iterable(y))
 
-        count = 0
-        # transform data structure to group tokens by lines
-        for doc_x, doc_y in zip(X, y):
-            for line_idx, line in enumerate(doc_x):
-                trainer.append(line, doc_y[line_idx])
-            count+=1
-            self.logger.print("Added %s documents to trainer" % count)
-
-        self.logger.new_line()
-        self.logger.println("pycrfsuite Trainer has data")
-
-        trainer.set_params({
-            'c1': 0.001,   # coefficient for L1 penalty
-            'c2': 0.001,  # coefficient for L2 penalty
-            'max_iterations': 400,  # stop earlier
-
-            # include states features that do not even occur in the training
-            # data, crfsuite creates all possible associations between
-            # attirbutes and labels - enabling improves label accuracy
-            #'feature.possible_states': True,
-            # include transitions that are possible, but not observed
-            'feature.possible_transitions': True
-        })
-        print(trainer.params())
-        trainer.train(model_name)
-        return trainer
+        self.logger.println("crf trainer init")
+        crf = sklearn_crfsuite.CRF(algorithm='lbfgs', c1=0.01, c2=0.01, max_iterations=150, all_possible_transitions=True, verbose=True)
+        crf.fit(X_combined, y_combined)
+        return crf
 
     def score_model(self, y_true, y_pred):
         lb = LabelBinarizer()
@@ -86,7 +67,7 @@ class CrfSuite(Tags):
         y_true_combined = lb.fit_transform(list(chain.from_iterable(y_true)))
         y_pred_combined = lb.transform(list(chain.from_iterable(y_pred)))
 
-        tagset = set(lb.classes_)
+        tagset = set(lb.classes_) - {'O'}
         tagset = sorted(tagset, key=lambda tag: tag.split('-', 1)[::-1])
 
         class_indices = {cls: idx for idx, cls in enumerate(lb.classes_)}
@@ -131,22 +112,12 @@ class CrfSuite(Tags):
         return identified_entities
 
     # use an existing model to tag data
-    def test_model(self, model_name, features):
-        tagger = pycrfsuite.Tagger()
-        tagger.open(model_name)
-        # transformed data
-        docs_x_test = []
-
-        for doc_x in features:
-            xseq = []
-            for line_idx, line in enumerate(doc_x):
-                for token_idx, token in enumerate(line):
-                    xseq.append(token)
-            docs_x_test.append(xseq)
-
-        y_pred = [tagger.tag(doc) for doc in docs_x_test]
+    def test_model(self, model, features):
+        X_features = list(chain.from_iterable(features))
+        y_pred = model.predict(X_features)
         return y_pred
 
+    # hyperparamter optimisation
     def optimise_model(self, X, y):
         # prepare data structure
         xseq = []
@@ -165,7 +136,7 @@ class CrfSuite(Tags):
             verbose=True
         )
         params_space = {
-            'c1': scipy.stats.expon(scale=0.5),
+            'c1': scipy.stats.expon(scale=0.05),
             'c2': scipy.stats.expon(scale=0.05),
         }
 
@@ -175,13 +146,32 @@ class CrfSuite(Tags):
         f1_scorer = make_scorer(metrics.flat_f1_score, average='weighted', labels=labels)
 
         # search
-        rs = RandomizedSearchCV(crf, params_space, cv=10, verbose=1, n_jobs=-1, n_iter=10, scoring=f1_scorer)
+        rs = RandomizedSearchCV(crf, params_space, cv=3, verbose=1, n_jobs=3, n_iter=3, scoring=f1_scorer)
         rs.fit(xseq, yseq)
 
-        # crf = rs.best_estimator_
         print('best params:', rs.best_params_)
         print('best CV score:', rs.best_score_)
         print('model size: {:0.2f}M'.format(rs.best_estimator_.size_ / 1000000))
+
+        _x = [s.parameters['c1'] for s in rs.grid_scores_]
+        _y = [s.parameters['c2'] for s in rs.grid_scores_]
+        _c = [s.mean_validation_score for s in rs.grid_scores_]
+
+        fig = plt.figure()
+        fig.set_size_inches(12, 12)
+        ax = plt.gca()
+        ax.set_yscale('log')
+        ax.set_xscale('log')
+        ax.set_xlabel('C1')
+        ax.set_ylabel('C2')
+        ax.set_title("Randomized Hyperparameter Search CV Results (min={:0.3}, max={:0.3})".format(
+            min(_c), max(_c)
+        ))
+
+        ax.scatter(_x, _y, c=_c, s=60, alpha=0.9, edgecolors=[0,0,0])
+
+        print("Dark blue => {:0.4}, dark red => {:0.4}".format(min(_c), max(_c)))
+        plt.show()
     
     def plot_learning_curve(self, X, y):
         train_sizes=np.linspace(.1, 1.0, 5)
