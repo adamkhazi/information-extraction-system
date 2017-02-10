@@ -67,19 +67,6 @@ class CrfSuite(Tags):
         trainer.train(model_name)
         return trainer
 
-    def score_model_temp(self, est, y_true, y_pred):
-        lb = LabelBinarizer()
-
-        y_true_combined = lb.fit_transform(list(chain.from_iterable(y_true)))
-        y_pred_combined = lb.transform(list(chain.from_iterable(y_pred)))
-
-        tagset = set(lb.classes_) - {'O'}
-        tagset = sorted(tagset, key=lambda tag: tag.split('-', 1)[::-1])
-
-        class_indices = {cls: idx for idx, cls in enumerate(lb.classes_)}
-
-        return f1_score(y_true_combined, y_pred_combined, average="weighted", labels = [class_indices[cls] for cls in tagset])
-
     def score_model(self, y_true, y_pred):
         lb = LabelBinarizer()
 
@@ -160,25 +147,22 @@ class CrfSuite(Tags):
         y_pred = [tagger.tag(doc) for doc in docs_x_test]
         return y_pred
 
-    def optimise_model(self):
+    def optimise_model(self, X, y):
         # prepare data structure
-        count = 0
         xseq = []
         yseq = []
         # transform data structure to group tokens by lines
-        for doc_x, doc_y in zip(self.X_train, self.y_train):
+        for doc_x, doc_y in zip(X, y):
             for line_idx, line in enumerate(doc_x):
                 xseq.append(line)
                 yseq.append(doc_y[line_idx])
 
-            count+=1
-            self.logger.print("Added %s documents to trainer" % count)
-
         # define fixed parameters and parameters to search
         crf = sklearn_crfsuite.CRF(
             algorithm='lbfgs',
-            max_iterations=100,
-            all_possible_transitions=True
+            max_iterations=200,
+            all_possible_transitions=True,
+            verbose=True
         )
         params_space = {
             'c1': scipy.stats.expon(scale=0.5),
@@ -191,8 +175,13 @@ class CrfSuite(Tags):
         f1_scorer = make_scorer(metrics.flat_f1_score, average='weighted', labels=labels)
 
         # search
-        rs = RandomizedSearchCV(crf, params_space, cv=3, verbose=1, n_jobs=-1, n_iter=50, scoring=f1_scorer)
+        rs = RandomizedSearchCV(crf, params_space, cv=10, verbose=1, n_jobs=-1, n_iter=10, scoring=f1_scorer)
         rs.fit(xseq, yseq)
+
+        # crf = rs.best_estimator_
+        print('best params:', rs.best_params_)
+        print('best CV score:', rs.best_score_)
+        print('model size: {:0.2f}M'.format(rs.best_estimator_.size_ / 1000000))
     
     def plot_learning_curve(self, X, y):
         train_sizes=np.linspace(.1, 1.0, 5)

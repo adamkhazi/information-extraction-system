@@ -27,23 +27,23 @@ class FeatureGenerator():
         postag = line[token_idx][1]
         nonlocalnertag = line[token_idx][2]
 
-        features = {
-                "bias": 1.0,
-                "word": word.lower(),
-                'word[-3:]': word[-3:].lower(),
-                'word[-2:]': word[-2:].lower(),
-                'word.isupper': word.isupper(),
-                'word.istitle': word.istitle(),
-                'word.isdigit': word.isdigit()
-                #'word.freq': self.word_to_count(word),
-                #'word.idx': float(token_idx),
-                #'line.idx': float(line_idx),
-                #'line.size': float(len(line))
-                #'pos': postag,
-                #'pos[-3:]': postag[-3:],
-                #'pos[-2:]': postag[-2:],
-                #'nonlocalner': nonlocalnertag
-        }
+        features = dict()
+
+        features["bias"] = 1.0
+        features["word"] = word.lower()
+        features['word[-3:]'] = word[-3:].lower()
+        features['word[-2:]'] = word[-2:].lower()
+        features['word.isupper'] = word.isupper()
+        features['word.istitle'] = word.istitle()
+        features['word.isdigit'] = word.isdigit()
+        features['word.freq'] = self.word_to_count(word)
+        features['word.idx'] = float(token_idx)
+        features['line.idx'] = float(line_idx)
+        features['line.size'] = float(len(line))
+        features['pos'] = postag
+        features['pos[-3:]'] = postag[-3:]
+        features['pos[-2:]'] = postag[-2:]
+        features['nonlocalner'] = nonlocalnertag
 
 
         if token_idx > 0:
@@ -52,21 +52,21 @@ class FeatureGenerator():
             nonlocalnertag1 = line[token_idx-1][2]
 
             features['word-1'] = word1.lower()
-            #features['pos-1'] = postag1
-            #features['posbigram-1'] = postag1 + postag
-            #features['pos[-3:]'] = postag1[-3:]
-            #features['pos[-2:]'] = postag1[-2:]
-            #features['bigram-1'] = word1.lower() + '|' + word.lower()
+            features['pos-1'] = postag1
+            features['posbigram-1'] = postag1 + postag
+            features['pos[-3:]'] = postag1[-3:]
+            features['pos[-2:]'] = postag1[-2:]
+            features['bigram-1'] = word1.lower() + '|' + word.lower()
             features['word-1.isupper'] = word1.isupper()
             features['word-1.istitle'] = word1.istitle()
             features['word-1.isdigit'] = word1.isdigit()
-            #features['word-1[-3:]'] = word1[-3:]
-            #features['word-1[-2:]'] = word1[-2:]
-            #features['word.freq'] = self.word_to_count(word1)
-            #features['word-1.idx']= float(token_idx-1)
-            #features['nonlocalner'] = nonlocalnertag1
+            features['word-1[-3:]'] = word1[-3:]
+            features['word-1[-2:]'] = word1[-2:]
+            features['word.freq'] = self.word_to_count(word1)
+            features['word-1.idx']= float(token_idx-1)
+            features['nonlocalner'] = nonlocalnertag1
         else:
-            #features['bigram-1'] = "BOL" + word.lower()
+            features['bigram-1'] = "BOL" + word.lower()
             features['BOL'] = 1.0
 
         if token_idx < len(line)-1:
@@ -75,21 +75,21 @@ class FeatureGenerator():
             nonlocalnertag1 = line[token_idx+1][2]
 
             features['word+1'] = word1.lower()
-            #features['pos+1'] = postag1
-            #features['posbigram+1'] = postag + postag1
-            #features['pos[-3:]'] = postag1[-3:]
-            #features['pos[-2:]'] = postag1[-2:]
-            #features['bigram+1'] = word.lower() + '|' + word1.lower()
+            features['pos+1'] = postag1
+            features['posbigram+1'] = postag + postag1
+            features['pos[-3:]'] = postag1[-3:]
+            features['pos[-2:]'] = postag1[-2:]
+            features['bigram+1'] = word.lower() + '|' + word1.lower()
             features['word+1.isupper'] = word1.isupper()
             features['word+1.istitle'] = word1.istitle()
             features['word+1.isdigit'] = word1.isdigit()
-            #features['word+1[-3:]'] = word1[-3:]
-            #features['word+1[-2:]'] = word1[-2:]
-            #features['word.freq'] = self.word_to_count(word1)
-            #features['word+1.idx']= float(token_idx+1)
-            #features['nonlocalner'] = nonlocalnertag1
+            features['word+1[-3:]'] = word1[-3:]
+            features['word+1[-2:]'] = word1[-2:]
+            features['word.freq'] = self.word_to_count(word1)
+            features['word+1.idx']= float(token_idx+1)
+            features['nonlocalner'] = nonlocalnertag1
         else:
-            #features['bigram+1'] = word.lower() + "EOL"
+            features['bigram+1'] = word.lower() + "EOL"
             features['EOL'] = 1.0
 
         """

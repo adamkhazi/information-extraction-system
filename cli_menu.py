@@ -39,7 +39,7 @@ class CliMenu():
             self.train_model_learning_curve(int(sys.argv[2]))
 
         elif command_arg == self.__argument_optimise:
-            self.optimise_model()
+            self.optimise_model(int(sys.argv[2]))
 
         elif command_arg == self.__argument_annotate_dataset:
             if len(sys.argv) > 2:
@@ -84,18 +84,27 @@ class CliMenu():
         elapsed_seconds = timeit.default_timer() - start_time
         self.logger.print_time_taken("data annotation operation took", elapsed_seconds)
 
-    def optimise_model(self):
+    def optimise_model(self, argv):
         self.logger.println("optimise model called")
         start_time = timeit.default_timer()
-        cs = CrfSuite()
-        cs.get_dataset()
-        #cs.load_embeddings()
-        cs.generate_embeddings()
-        #cs.encode_dataset()
 
-        cs.split_dataset()
-        cs.generate_features()
-        cs.optimise_model()
+        cs = CrfSuite()
+
+        dataset = Dataset()
+        data = dataset.read(nr_of_files=argv)
+
+        we_model = WeModel()
+        w2v_model = we_model.train(data) # optionally load a pretrained model here 
+        we_model.save(w2v_model)
+
+        word2count, word2idx = dataset.encode_dataset(data)
+
+        f_generator = FeatureGenerator(w2v_model, word2count, word2idx)
+        train_features = f_generator.generate_features_docs(data)
+        y_train = f_generator.generate_true_outcome(data)
+
+        cs.optimise_model(train_features, y_train)
+
         elapsed_seconds = timeit.default_timer() - start_time
         self.logger.print_time_taken("optimise model operation took", elapsed_seconds)
 
