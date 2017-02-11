@@ -86,6 +86,32 @@ class Extractor:
                     break
         self.logger.println("read %s file names" % counter)
 
+    def __read_resume_content_tika_api(self):
+
+        os.environ['TIKA_VERSION'] = home + "1.14"
+        os.environ['TIKA_SERVER_CLASSPATH'] = home + "tika-app-1.14.jar"
+
+        remove_files_idxs = []
+
+        self.resume_content = []
+        for idx, filename in enumerate(self.dataset_filenames):
+            self.logger.println("sending resume %s/%s to tika" % (idx, len(self.dataset_filenames)-1) )
+            # append filename + ext to path
+            filepath = self.__dataset_raw_data_folder + self.__file_path_seperator + filename[0] + filename[1]
+            extracted_information = parser.from_file(filepath)
+            try:
+                self.resume_content.append(extracted_information["content"])
+            except KeyError:
+                remove_files_idxs.append(idx)
+
+        delete_count = 0
+        for idx in remove_files_idxs:
+            self.logger.println("removing unprocessed resume file at index %s named %s" % (idx-delete_count, self.dataset_filenames[idx-delete_count]))
+            del self.dataset_filenames[idx-delete_count]
+            delete_count += 1
+
+        self.logger.println("read content from %s resume files" % len(self.resume_content))
+
     def __read_resume_content(self):
         self.resume_content = []
         self.resume_metadata = []
@@ -141,14 +167,14 @@ class Extractor:
         for idx in remove_files_idxs:
             self.logger.println("removing empty resume file at index %s named %s" % (idx, self.dataset_filenames[idx]))
             del self.dataset_filenames[idx-deleted_count]
-            del self.resume_metadata[idx-deleted_count]
             del self.resume_content[idx-deleted_count]
             deleted_count += 1
         self.logger.println("removed empty resume files and total file count is at %s" % len(self.resume_content))
 
     def read_raw_files(self, nr_of_docs):
         self.populate_file_names(nr_of_docs)
-        self.__read_resume_content()
+        #self.__read_resume_content()
+        self.__read_resume_content_tika_api()
         #self.read_resume_content_txtract()
         self.remove_empty_resumes()
         self.read_resume_labels()
