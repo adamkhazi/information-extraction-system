@@ -2,10 +2,10 @@ import sys
 import timeit
 import pdb
 
-from crf_suite import CrfSuite
 import matplotlib.pyplot as plt
 
 from feature_generator import FeatureGenerator
+from crf_suite import CrfSuite
 from generate_dataset import GenerateDataset
 from annotator import Annotator
 from api import API
@@ -118,17 +118,20 @@ class CliMenu():
         train_set, test_set = dataset.split_dataset(data)
 
         we_model = WeModel()
-        w2v_model = we_model.train(train_set) # optionally load a pretrained model here 
-        we_model.save(w2v_model)
+        w2v_model = we_model.load_pretrained_model() # optionally load a pretrained model here 
+        we_model = None
+        #we_model.save(w2v_model)
 
         word2count, word2idx = dataset.encode_dataset(train_set)
 
         f_generator = FeatureGenerator(w2v_model, word2count, word2idx)
+        w2v_model = None
         train_features = f_generator.generate_features_docs(train_set)
         y_train = f_generator.generate_true_outcome(train_set)
 
         test_features = f_generator.generate_features_docs(test_set)
         y_test = f_generator.generate_true_outcome(test_set)
+        f_generator = None
 
         model = cs.train_model(train_features, y_train)
         y_train_pred = cs.test_model(model, train_features)
@@ -163,10 +166,8 @@ class CliMenu():
         self.logger.println("evaluate model called")
         evaluator = Evaluator()
         dataset = Dataset()
-        data = dataset.read(1000)
-        training_scores, test_scores = evaluator.perform_bootstrapping(data, 700, 10)
-        print("training scores")
-        print(training_scores)
+        data = dataset.read(int(arg))
+        test_scores = evaluator.perform_bootstrapping(data, int(arg), 20)
         print("test scores")
         print(test_scores)
 
@@ -184,7 +185,8 @@ class CliMenu():
         train_set, test_set = dataset.split_dataset(data)
 
         we_model = WeModel()
-        w2v_model = we_model.train(train_set) # optionally load a pretrained model here 
+        #w2v_model = we_model.train(train_set) # optionally load a pretrained model here 
+        w2v_model = we_model.load_pretrained_model() # optionally load a pretrained model here 
         word2count, word2idx = dataset.encode_dataset(train_set)
 
         f_generator = FeatureGenerator(w2v_model, word2count, word2idx)

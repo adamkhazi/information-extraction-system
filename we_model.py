@@ -17,7 +17,7 @@ class WeModel():
         self.__logger = Logger()
         self.__logger.println("word embedding model created")
 
-    def train(self, data, dimen=30):
+    def train(self, data, dimen=100):
         all_lines = []
         we_data = copy.deepcopy(data)
         for doc_idx, doc in enumerate(we_data):
@@ -28,7 +28,7 @@ class WeModel():
             for token_idx, token in enumerate(line):
                 all_lines[line_idx][token_idx] = token[0].lower()
 
-        w2v_model = word2vec.Word2Vec(all_lines, size=dimen, iter=10, min_count=1)
+        w2v_model = word2vec.Word2Vec(all_lines, size=dimen, iter=15, min_count=5)
         return w2v_model
 
     def save(self, w2v_model):
@@ -40,3 +40,4 @@ class WeModel():
     def load_pretrained_model(self, model_name=__google_news_word2vec):
         path = self.__pre_trained_models_folder + self.__seperator + model_name
         return gensim.models.Word2Vec.load_word2vec_format(path, binary=True)
+
