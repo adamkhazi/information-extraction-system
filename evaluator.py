@@ -137,8 +137,8 @@ class Evaluator(Tags):
         emp_comp_tpr = np.empty(shape=(0,3),dtype='float64')
         emp_comp_fpr = np.empty(shape=(0,3),dtype='float64')
         edu_major_tpr = np.empty(shape=(0,3),dtype='float64')
-        edu_major_tpr = np.empty(shape=(0,3),dtype='float64')
-        edu_inst_fpr = np.empty(shape=(0,3),dtype='float64')
+        edu_major_fpr = np.empty(shape=(0,3),dtype='float64')
+        edu_inst_tpr = np.empty(shape=(0,3),dtype='float64')
         edu_inst_fpr = np.empty(shape=(0,3),dtype='float64')
 
         for x in range(0, iterations):
@@ -172,13 +172,34 @@ class Evaluator(Tags):
             # fpr and tpr for one class
             temp_fpr, temp_tpr, _ = roc_curve(y_true_combined[:, class_indices["B-EMP-POS"]], y_pred_combined[:, class_indices["B-EMP-POS"]], pos_label=1)
             temp_fpr1, temp_tpr1, _ = roc_curve(y_true_combined[:, class_indices["I-EMP-POS"]], y_pred_combined[:, class_indices["I-EMP-POS"]], pos_label=1)
-            pdb.set_trace()
-
             temp_fpr = np.vstack([temp_fpr, temp_fpr1])
             temp_tpr = np.vstack([temp_tpr, temp_tpr1])
-
             emp_pos_tpr = np.vstack([emp_pos_tpr, temp_tpr.mean(axis=0)])
             emp_pos_fpr = np.vstack([emp_pos_fpr, temp_fpr.mean(axis=0)])
+            temp_fpr = temp_tpr = temp_fpr1 = temp_tpr1 = np.empty(shape=(0,3),dtype='float64')
+
+            temp_fpr, temp_tpr, _ = roc_curve(y_true_combined[:, class_indices["B-EMP-COMP"]], y_pred_combined[:, class_indices["B-EMP-COMP"]], pos_label=1)
+            temp_fpr1, temp_tpr1, _ = roc_curve(y_true_combined[:, class_indices["I-EMP-COMP"]], y_pred_combined[:, class_indices["I-EMP-COMP"]], pos_label=1)
+            temp_fpr = np.vstack([temp_fpr, temp_fpr1])
+            temp_tpr = np.vstack([temp_tpr, temp_tpr1])
+            emp_comp_tpr = np.vstack([emp_comp_tpr, temp_tpr.mean(axis=0)])
+            emp_comp_fpr = np.vstack([emp_comp_fpr, temp_fpr.mean(axis=0)])
+            temp_fpr = temp_tpr = temp_fpr1 = temp_tpr1 = np.empty(shape=(0,3),dtype='float64')
+
+            temp_fpr, temp_tpr, _ = roc_curve(y_true_combined[:, class_indices["B-EDU-MAJOR"]], y_pred_combined[:, class_indices["B-EDU-MAJOR"]], pos_label=1)
+            temp_fpr1, temp_tpr1, _ = roc_curve(y_true_combined[:, class_indices["I-EDU-MAJOR"]], y_pred_combined[:, class_indices["I-EDU-MAJOR"]], pos_label=1)
+            temp_fpr = np.vstack([temp_fpr, temp_fpr1])
+            temp_tpr = np.vstack([temp_tpr, temp_tpr1])
+            edu_major_tpr = np.vstack([edu_major_tpr, temp_tpr.mean(axis=0)])
+            edu_major_fpr = np.vstack([edu_major_fpr, temp_fpr.mean(axis=0)])
+            temp_fpr = temp_tpr = temp_fpr1 = temp_tpr1 = np.empty(shape=(0,3),dtype='float64')
+
+            temp_fpr, temp_tpr, _ = roc_curve(y_true_combined[:, class_indices["B-EDU-INST"]], y_pred_combined[:, class_indices["B-EDU-INST"]], pos_label=1)
+            temp_fpr1, temp_tpr1, _ = roc_curve(y_true_combined[:, class_indices["I-EDU-INST"]], y_pred_combined[:, class_indices["I-EDU-INST"]], pos_label=1)
+            temp_fpr = np.vstack([temp_fpr, temp_fpr1])
+            temp_tpr = np.vstack([temp_tpr, temp_tpr1])
+            edu_inst_tpr = np.vstack([edu_inst_tpr, temp_tpr.mean(axis=0)])
+            edu_inst_fpr = np.vstack([edu_inst_fpr, temp_fpr.mean(axis=0)])
 
             emp_pos_scores = np.vstack([emp_pos_scores, self.entity_scorer(ds.docs2lines(y_test), y_test_pred, "EMP-POS")])
             emp_comp_scores = np.vstack([emp_comp_scores, self.entity_scorer(ds.docs2lines(y_test), y_test_pred, "EMP-COMP")])
@@ -209,15 +230,52 @@ class Evaluator(Tags):
         emp_pos_tpr = emp_pos_tpr.mean(axis=0)
         emp_pos_fpr = emp_pos_fpr.mean(axis=0)
 
-        lw=2
-        plt.plot(emp_pos_fpr, emp_pos_tpr, color='g', linestyle='--', label='EMP-POS', lw=lw)
+        emp_comp_tpr = emp_comp_tpr.mean(axis=0)
+        emp_comp_fpr = emp_comp_fpr.mean(axis=0)
 
+        edu_major_tpr = edu_major_tpr.mean(axis=0)
+        edu_major_fpr = edu_major_fpr.mean(axis=0)
+
+        edu_inst_tpr = edu_inst_tpr.mean(axis=0)
+        edu_inst_fpr = edu_inst_fpr.mean(axis=0)
+
+        lw=2
+        plt.subplot(221)
+        plt.plot(emp_pos_fpr, emp_pos_tpr, color='g', linestyle='--', label='EMP-POS', lw=lw)
         plt.xlim([-0.05, 1.05])
         plt.ylim([-0.05, 1.05])
         plt.xlabel('False Positive Rate')
         plt.ylabel('True Positive Rate')
-        plt.title('Receiver operating characteristic example')
+        plt.title('ROC')
         plt.legend(loc="lower right")
+
+        plt.subplot(222)
+        plt.plot(emp_comp_fpr, emp_comp_tpr, color='g', linestyle='--', label='EMP-COMP', lw=lw)
+        plt.xlim([-0.05, 1.05])
+        plt.ylim([-0.05, 1.05])
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        plt.title('ROC')
+        plt.legend(loc="lower right")
+
+        plt.subplot(223)
+        plt.plot(edu_major_fpr, edu_major_tpr, color='g', linestyle='--', label='EDU-MAJOR', lw=lw)
+        plt.xlim([-0.05, 1.05])
+        plt.ylim([-0.05, 1.05])
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        plt.title('ROC')
+        plt.legend(loc="lower right")
+
+        plt.subplot(224)
+        plt.plot(edu_inst_fpr, edu_inst_tpr, color='g', linestyle='--', label='EDU-INST', lw=lw)
+        plt.xlim([-0.05, 1.05])
+        plt.ylim([-0.05, 1.05])
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        plt.title('ROC')
+        plt.legend(loc="lower right")
+
         plt.show()
 
         return emp_pos_scores
