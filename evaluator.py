@@ -1,6 +1,5 @@
+import pdb
 import numpy as np
-import matplotlib.pyplot as plt
-from itertools import cycle
 import matplotlib.pyplot as plt
 from itertools import cycle
 from sklearn import svm, datasets
@@ -11,7 +10,8 @@ from sklearn.preprocessing import label_binarize
 from sklearn.multiclass import OneVsRestClassifier
 from scipy import interp
 from itertools import chain
-import pdb
+from scipy import interp
+
 
 from logger import Logger
 from dataset import Dataset
@@ -41,13 +41,14 @@ class Evaluator(Tags):
 
         class_indices = {cls: idx for idx, cls in enumerate(lb.classes_)}
 
+        pdb.set_trace()
 
-        roc_auc = dict()
         fpr = dict()
         tpr = dict()
         fpr = dict()
         tpr = dict()
         roc_auc = dict()
+
         for i in range(n_classes):
             fpr[i], tpr[i], _ = roc_curve(y_true_combined[:, i], y_pred_combined[:, i])
             roc_auc[i] = auc(fpr[i], tpr[i])
@@ -78,9 +79,9 @@ class Evaluator(Tags):
 
         colors = cycle(['aqua', 'darkorange', 'cornflowerblue'])
         for i, color in zip(range(n_classes), colors):
-            plt.plot(fpr[i], tpr[i], color=color, lw=lw,
-                     label='ROC curve of class {0} (area = {1:0.2f})'
-                     ''.format(i, roc_auc[i]))
+            plt.plot(fpr[i], tpr[i], color=color, lw=lw, label='ROC curve of class {0} (area = {1:0.2f})' ''.format(i, roc_auc[i]))
+
+        pdb.set_trace()
 
         plt.plot([0, 1], [0, 1], 'k--', lw=lw)
         plt.xlim([0.0, 1.0])
@@ -103,7 +104,7 @@ class Evaluator(Tags):
         tagset = set(lb.classes_) - {'O'}
         for tag in Tags.tag_list:
             if tag.split('-', 1)[::-1][0] != entity_tag: # remove tag if not currently asked for
-                tagset = set(lb.classes_) - {tag}
+                tagset = tagset - {tag}
             
         tagset = sorted(tagset, key=lambda tag: tag.split('-', 1)[::-1])
 
@@ -112,24 +113,33 @@ class Evaluator(Tags):
         precision = precision_score(y_true_combined, y_pred_combined, average="weighted", labels = [class_indices[cls] for cls in tagset])
         recall = recall_score(y_true_combined, y_pred_combined, average="weighted", labels = [class_indices[cls] for cls in tagset])
 
-        return [precision, recall, f1_s]
+        return np.array([precision, recall, f1_s], dtype='float64')
 
     def perform_bootstrapping(self, dataset, sample_size, iterations):
+        """
+        bootstraps a sample n times. Averages the precision, recall, f1, tpr and
+        fpr for each of the entities. Prints results of precision, recall and
+        f1. Plots roc curves for tpr and fpr of each entity.
+        """
         training_scores = []
         test_scores = []
-        entity_scores = []
-        # entities
-        entity_scores.append([])
-        entity_scores.append([])
-        entity_scores.append([])
-        entity_scores.append([])
-        entity_scores[0].append("EMP-POS")
-        entity_scores[1].append("EMP-COMP")
-        entity_scores[2].append("EDU-MAJOR")
-        entity_scores[3].append("EDU-INST")
-        # all entities
-        entity_scores.append([])
-        entity_scores[4].append("Test Totals")
+        
+        emp_pos_scores = np.empty(shape=(0,3),dtype='float64')
+        emp_comp_scores = np.empty(shape=(0,3),dtype='float64')
+        edu_major_scores = np.empty(shape=(0,3),dtype='float64')
+        edu_inst_scores = np.empty(shape=(0,3),dtype='float64')
+
+        mean_fpr = np.linspace(0, 1, 100)
+        lb = LabelBinarizer()
+
+        emp_pos_tpr = np.empty(shape=(0,3),dtype='float64')
+        emp_pos_fpr = np.empty(shape=(0,3),dtype='float64')
+        emp_comp_tpr = np.empty(shape=(0,3),dtype='float64')
+        emp_comp_fpr = np.empty(shape=(0,3),dtype='float64')
+        edu_major_tpr = np.empty(shape=(0,3),dtype='float64')
+        edu_major_tpr = np.empty(shape=(0,3),dtype='float64')
+        edu_inst_fpr = np.empty(shape=(0,3),dtype='float64')
+        edu_inst_fpr = np.empty(shape=(0,3),dtype='float64')
 
         for x in range(0, iterations):
             sampled_train_set, oob_test_set = self.resample_data(dataset, sample_size, return_leftovers=True)
@@ -154,14 +164,63 @@ class Evaluator(Tags):
             score_train = cs.score_model(ds.docs2lines(y_train), y_train_pred)
             score_test = cs.score_model(ds.docs2lines(y_test), y_test_pred)
 
-            entity_scores[0].append(self.entity_scorer(ds.docs2lines(y_test), y_test_pred, "EMP-POS"))
-            entity_scores[1].append(self.entity_scorer(ds.docs2lines(y_test), y_test_pred, "EMP-COMP"))
-            entity_scores[2].append(self.entity_scorer(ds.docs2lines(y_test), y_test_pred, "EDU-MAJOR"))
-            entity_scores[3].append(self.entity_scorer(ds.docs2lines(y_test), y_test_pred, "EDU-INST"))
+            y_true_combined = lb.fit_transform(list(chain.from_iterable(ds.docs2lines(y_test))))
+            y_pred_combined = lb.transform(list(chain.from_iterable(y_test_pred)))
 
-            entity_scores[4].append(score_test)
+            class_indices = {cls: idx for idx, cls in enumerate(lb.classes_)}
 
-        return entity_scores
+            # fpr and tpr for one class
+            temp_fpr, temp_tpr, _ = roc_curve(y_true_combined[:, class_indices["B-EMP-POS"]], y_pred_combined[:, class_indices["B-EMP-POS"]], pos_label=1)
+            temp_fpr1, temp_tpr1, _ = roc_curve(y_true_combined[:, class_indices["I-EMP-POS"]], y_pred_combined[:, class_indices["I-EMP-POS"]], pos_label=1)
+            pdb.set_trace()
+
+            temp_fpr = np.vstack([temp_fpr, temp_fpr1])
+            temp_tpr = np.vstack([temp_tpr, temp_tpr1])
+
+            emp_pos_tpr = np.vstack([emp_pos_tpr, temp_tpr.mean(axis=0)])
+            emp_pos_fpr = np.vstack([emp_pos_fpr, temp_fpr.mean(axis=0)])
+
+            emp_pos_scores = np.vstack([emp_pos_scores, self.entity_scorer(ds.docs2lines(y_test), y_test_pred, "EMP-POS")])
+            emp_comp_scores = np.vstack([emp_comp_scores, self.entity_scorer(ds.docs2lines(y_test), y_test_pred, "EMP-COMP")])
+            edu_major_scores = np.vstack([edu_major_scores, self.entity_scorer(ds.docs2lines(y_test), y_test_pred, "EDU-MAJOR")])
+            edu_inst_scores = np.vstack([edu_inst_scores, self.entity_scorer(ds.docs2lines(y_test), y_test_pred, "EDU-INST")])
+
+        print("EMP-POS")
+        print("precision %s" % np.mean(emp_pos_scores[:,0]))
+        print("recall %s" % np.mean(emp_pos_scores[:,1]))
+        print("f1 %s" % np.mean(emp_pos_scores[:,2]))
+
+        print("EMP-COMP")
+        print("precision %s" % np.mean(emp_comp_scores[:,0]))
+        print("recall %s" % np.mean(emp_comp_scores[:,1]))
+        print("f1 %s" % np.mean(emp_comp_scores[:,2]))
+        
+        print("EDU-MAJOR")
+        print("precision %s" % np.mean(edu_major_scores[:,0]))
+        print("recall %s" % np.mean(edu_major_scores[:,1]))
+        print("f1 %s" % np.mean(edu_major_scores[:,2]))
+
+        print("EDU-INST")
+        print("precision %s" % np.mean(edu_inst_scores[:,0]))
+        print("recall %s" % np.mean(edu_inst_scores[:,1]))
+        print("f1 %s" % np.mean(edu_inst_scores[:,2]))
+
+
+        emp_pos_tpr = emp_pos_tpr.mean(axis=0)
+        emp_pos_fpr = emp_pos_fpr.mean(axis=0)
+
+        lw=2
+        plt.plot(emp_pos_fpr, emp_pos_tpr, color='g', linestyle='--', label='EMP-POS', lw=lw)
+
+        plt.xlim([-0.05, 1.05])
+        plt.ylim([-0.05, 1.05])
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        plt.title('Receiver operating characteristic example')
+        plt.legend(loc="lower right")
+        plt.show()
+
+        return emp_pos_scores
 
     # returns resampled training and test set
     def resample_data(self, dataset, nr_samples, return_leftovers=False):
