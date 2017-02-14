@@ -52,14 +52,22 @@ class Dataset():
                             single_doc.append(single_line)
                             single_line = []
                         else:
+                            if self.read_error(row):
+                                print("read error in file %s" % filename)
                             single_line.append((row[0], row[1], row[2], row[3]))
                     dataset_docs.append(single_doc)
             if count == nr_of_files and nr_of_files != -1:
                 break
         self.resume_content = dataset_docs
         self.__logger.println("read %s files from: " % len(self.resume_content) + self.__dataset_folder)
-        self.resume_content = self.shuffle_data(self.resume_content)
+        #self.resume_content = self.shuffle_data(self.resume_content)
         return self.resume_content
+
+    def read_error(self, line):
+        if len(line[0]) == 0 or len(line[1]) == 0 or len(line[2]) == 0 or len(line[3]) == 0:
+            return True
+        else:
+            return False
 
     def shuffle_data(self, data):
         self.__logger.println("shuffling dataset")
