@@ -10,8 +10,6 @@ from sklearn.preprocessing import label_binarize
 from sklearn.multiclass import OneVsRestClassifier
 from scipy import interp
 from itertools import chain
-from scipy import interp
-
 
 from logger import Logger
 from dataset import Dataset
@@ -40,8 +38,6 @@ class Evaluator(Tags):
         n_classes = y_true_combined.shape[1]
 
         class_indices = {cls: idx for idx, cls in enumerate(lb.classes_)}
-
-        pdb.set_trace()
 
         fpr = dict()
         tpr = dict()
@@ -80,8 +76,6 @@ class Evaluator(Tags):
         colors = cycle(['aqua', 'darkorange', 'cornflowerblue'])
         for i, color in zip(range(n_classes), colors):
             plt.plot(fpr[i], tpr[i], color=color, lw=lw, label='ROC curve of class {0} (area = {1:0.2f})' ''.format(i, roc_auc[i]))
-
-        pdb.set_trace()
 
         plt.plot([0, 1], [0, 1], 'k--', lw=lw)
         plt.xlim([0.0, 1.0])
