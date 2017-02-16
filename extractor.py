@@ -78,12 +78,11 @@ class Extractor:
         filenames = []
         counter = 0
         for filename in os.listdir(folder_path):
-            if filename.endswith(self.__file_ext_pdf) or filename.endswith(self.__file_ext_doc) or filename.endswith(self.__file_ext_docx):
-                filename, file_ext = os.path.splitext(filename)
-                filenames.append((filename, file_ext.lower()))
-                counter += 1
-                if counter == nr_of_files and nr_of_files != -1:
-                    break
+            filename, file_ext = os.path.splitext(filename)
+            filenames.append((filename, file_ext.lower()))
+            counter += 1
+            if counter == nr_of_files and nr_of_files != -1:
+                break
         self.logger.println("read %s file names" % counter)
         return filenames
 
