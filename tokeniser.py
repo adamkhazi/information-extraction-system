@@ -36,3 +36,6 @@ class Tokeniser():
         self.__logger.println("completed tokenising %s resumes by words" % len(docs))
         return tokenised_resumes
 
+    def docs_tolower(self, docs):
+        return [[[token.lower() for token in line] for line in doc] for doc in docs]
+
