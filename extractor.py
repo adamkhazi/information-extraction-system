@@ -24,6 +24,7 @@ os.environ['CLASSPATH'] = home + "tika-app-1.14.jar"
 class Extractor:
     __dataset_raw_data_folder = "dataset_raw_data"
     __file_path_seperator = "/"
+    __empty_str = ''
 
     __file_ext_txt = ".txt"
     __file_ext_xml = ".xml"
@@ -44,31 +45,39 @@ class Extractor:
 
     def get_edu_majors(self, label_set):
         edu_major_list = label_set.findall("Education/edu_major")
+        edu_major_list = [edu_major.text for edu_major in edu_major_list]
+        edu_major_list = [self.replace_dash(edu_major) for edu_major in edu_major_list]
         if not edu_major_list:
             return []
         else:
-            return [self.replace_dash(html.unescape(major.text)) for major in edu_major_list if major.text is not None]
+            return [html.unescape(major) for major in edu_major_list if major is not self.__empty_str]
 
     def get_edu_institutions(self, label_set):
         edu_inst_list = label_set.findall("Education/edu_inst_name")
+        edu_inst_list = [edu_inst.text for edu_inst in edu_inst_list]
+        edu_inst_list = [self.replace_dash(edu_inst) for edu_inst in edu_inst_list]
         if not edu_inst_list:
             return []
         else:
-            return [self.replace_dash(html.unescape(inst.text)) for inst in edu_inst_list if inst.text is not None]
+            return [html.unescape(inst) for inst in edu_inst_list if inst is not self.__empty_str]
 
     def get_company_names(self, label_set):
         company_list = label_set.findall("Jobs/job_company_name")
+        company_list = [company.text for company in company_list]
+        company_list = [self.replace_dash(company) for company in company_list]
         if not company_list:
             return []
         else:
-            return [self.replace_dash(html.unescape(company.text)) for company in company_list if company.text is not None]
+            return [html.unescape(company) for company in company_list if company is not self.__empty_str]
 
     def get_job_titles(self, label_set):
         job_list = label_set.findall("Jobs/job_position")
+        job_list = [job.text for job in job_list]
+        job_list = [self.replace_dash(job) for job in job_list]
         if not job_list:
             return []
         else:
-            return [self.replace_dash(html.unescape(j_title.text)) for j_title in job_list if j_title.text is not None]
+            return [html.unescape(j_title) for j_title in job_list if j_title is not self.__empty_str]
 
     def get_dataset_folder(self):
         return self.__dataset_raw_data_folder
