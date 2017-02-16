@@ -4,6 +4,7 @@ import numpy
 import os
 import html
 import textract
+import pdb
 
 import xml.etree.cElementTree as ET
 from os.path import expanduser
@@ -42,6 +43,26 @@ class Extractor:
             return ""
         else:
             return label
+
+    def get_edu_institutions_zy(self, label_set):
+        edu_inst_list = label_set.findall(".//{http://tempuri.org/}SegrigatedQualification/{http://tempuri.org/}EducationSplit/{http://tempuri.org/}University")
+        edu_inst_list = [inst.text for inst in edu_inst_list]
+        return [inst for inst in edu_inst_list if inst is not self.__empty_str and inst is not None]
+
+    def get_edu_majors_zy(self, label_set):
+        edu_majors_list = label_set.findall(".//{http://tempuri.org/}SegrigatedQualification/{http://tempuri.org/}EducationSplit/{http://tempuri.org/}Degree")
+        edu_majors_list = [major.text for major in edu_majors_list]
+        return [major for major in edu_majors_list if major is not self.__empty_str and major is not None]
+
+    def get_company_names_zy(self, label_set):
+        company_list = label_set.findall(".//{http://tempuri.org/}SegrigatedExperience/{http://tempuri.org/}WorkHistory/{http://tempuri.org/}Employer")
+        company_list = [company.text for company in company_list]
+        return [company for company in company_list if company is not self.__empty_str and company is not None]
+
+    def get_job_titles_zy(self, label_set):
+        jtitle_list = label_set.findall(".//{http://tempuri.org/}SegrigatedExperience/{http://tempuri.org/}WorkHistory/{http://tempuri.org/}JobProfile")
+        jtitle_list = [jtitle.text for jtitle in jtitle_list]
+        return [jtitle for jtitle in jtitle_list if jtitle is not self.__empty_str and jtitle is not None]
 
     def get_edu_majors(self, label_set):
         edu_major_list = label_set.findall("Education/edu_major")
@@ -137,18 +158,18 @@ class Extractor:
         # idxs of files that don't have content
         remove_files_idxs = []
 
-        Tika = autoclass('org.apache.tika.Tika') 
-        Metadata = autoclass('org.apache.tika.metadata.Metadata') 
-        FileInputStream = autoclass('java.io.FileInputStream') 
-        tika = Tika() 
-        meta = Metadata() 
+        Tika = autoclass('org.apache.tika.Tika')
+        Metadata = autoclass('org.apache.tika.metadata.Metadata')
+        FileInputStream = autoclass('java.io.FileInputStream')
+        tika = Tika()
+        meta = Metadata()
 
         for idx, filename in enumerate(self.dataset_filenames):
             self.logger.println("extracting from resume %s/%s with tika" % (idx, len(self.dataset_filenames)-1) )
             # append filename + ext to path
             filepath = self.__dataset_raw_data_folder + self.__file_path_seperator + filename[0] + filename[1]
             try:
-                extracted_information = tika.parseToString(FileInputStream(filepath), meta) 
+                extracted_information = tika.parseToString(FileInputStream(filepath), meta)
             except:
                 extracted_information = ""
 
