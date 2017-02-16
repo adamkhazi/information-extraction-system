@@ -21,6 +21,7 @@ class CliMenu():
     __argument_api = "-rn"
     __argument_evaluate = "-e"
     __argument_train_w_learning_curve = "-lc"
+    __argument_evaluate_zylon = "-e_zylon"
 
     def __init__(self):
         self.logger = Logger()
@@ -55,6 +56,9 @@ class CliMenu():
                 self.evaluate_model(sys.argv[2])
             else:
                 print("evaluate model option needs an extra parameter")
+
+        elif command_arg == self.__argument_evaluate_zylon:
+            self.evaluate_zylon()
 
         else:
             print("Commands accepted:")
@@ -195,6 +199,17 @@ class CliMenu():
 
         cs.plot_learning_curve(train_features, y_train)
         plt.show()
+
+        elapsed_seconds = timeit.default_timer() - start_time
+        self.logger.print_time_taken("train model operation took", elapsed_seconds)
+
+    def evaluate_zylon(self):
+        self.logger.println("train model called")
+        start_time = timeit.default_timer()
+
+        evaluator = Evaluator()
+        scores = evaluator.get_zylon_parser_scores()
+        print(scores)
 
         elapsed_seconds = timeit.default_timer() - start_time
         self.logger.print_time_taken("train model operation took", elapsed_seconds)
