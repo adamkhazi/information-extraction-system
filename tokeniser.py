@@ -37,5 +37,6 @@ class Tokeniser():
         return tokenised_resumes
 
     def docs_tolower(self, docs):
+        self.__logger.println("lower casing %s resumes by tokens" % len(docs))
         return [[[token.lower() for token in line] for line in doc] for doc in docs]
 
