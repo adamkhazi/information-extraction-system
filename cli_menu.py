@@ -118,7 +118,7 @@ class CliMenu():
         train_set, test_set = dataset.split_dataset(data)
 
         we_model = WeModel()
-        w2v_model = we_model.load_pretrained_model() # optionally load a pretrained model here 
+        w2v_model = we_model.train(data) # optionally load a pretrained model here 
         we_model = None
         #we_model.save(w2v_model)
 
@@ -167,7 +167,8 @@ class CliMenu():
         evaluator = Evaluator()
         dataset = Dataset()
         data = dataset.read(int(arg))
-        test_scores = evaluator.perform_bootstrapping(data, int(arg), 20)
+        test_scores = evaluator.perform_bootstrapping(data, int(arg), 100)
+
         print("test scores")
         print(test_scores)
 
