@@ -1,3 +1,4 @@
+import os
 import pdb
 import numpy as np
 import matplotlib.pyplot as plt
@@ -17,10 +18,17 @@ from crf_suite import CrfSuite
 from we_model import WeModel
 from feature_generator import FeatureGenerator
 from tags import Tags
+from extractor import Extractor
+from tokeniser import Tokeniser
 
 # Class evaluates an already trained model using ROC analysis.
 # Can also used bootstrapping to sample the dataset and train the model
 class Evaluator(Tags):
+    __zylon_parser_labels_folder = "zylon_parser_xml"
+    __dataset_raw_folder = "dataset_raw_data"
+    __seperator = "/"
+    __file_ext_xml = ".xml"
+
     def __init__(self):
         self.__logger = Logger()
         self.__logger.println("created evaluator")
@@ -99,7 +107,7 @@ class Evaluator(Tags):
         for tag in Tags.tag_list:
             if tag.split('-', 1)[::-1][0] != entity_tag: # remove tag if not currently asked for
                 tagset = tagset - {tag}
-            
+
         tagset = sorted(tagset, key=lambda tag: tag.split('-', 1)[::-1])
 
         class_indices = {cls: idx for idx, cls in enumerate(lb.classes_)}
@@ -117,7 +125,7 @@ class Evaluator(Tags):
         """
         training_scores = []
         test_scores = []
-        
+
         emp_pos_scores = np.empty(shape=(0,3),dtype='float64')
         emp_comp_scores = np.empty(shape=(0,3),dtype='float64')
         edu_major_scores = np.empty(shape=(0,3),dtype='float64')
@@ -209,7 +217,7 @@ class Evaluator(Tags):
         print("precision %s" % np.mean(emp_comp_scores[:,0]))
         print("recall %s" % np.mean(emp_comp_scores[:,1]))
         print("f1 %s" % np.mean(emp_comp_scores[:,2]))
-        
+
         print("EDU-MAJOR")
         print("precision %s" % np.mean(edu_major_scores[:,0]))
         print("recall %s" % np.mean(edu_major_scores[:,1]))
@@ -274,12 +282,73 @@ class Evaluator(Tags):
 
         return emp_pos_scores
 
-    # returns resampled training and test set
     def resample_data(self, dataset, nr_samples, return_leftovers=False):
+        """
+        Returns resampled training and test set. Uses the OOB Bootstrapping
+        method.
+        """
         data_rows = [i for i in range(len(dataset))]
         random_rows = [np.random.choice(data_rows) for row in range(nr_samples)]
         if not return_leftovers:
             return dataset[random_rows]
         leftover_rows = filter(lambda x: not x in random_rows, data_rows)
         return [dataset[idx] for idx in random_rows], [dataset[idx] for idx in leftover_rows]
+
+    def get_zylon_parser_scores(self):
+        """
+        parameters: none
+
+        Extracts labelled entities from zylon's xml output and true xml
+        output. Compares the entity lists and returns a score, higher is
+        better.
         
+        return: edu_insts_match_score, edu_majors_match_score, emp_names_match_score, emp_jtitles_match_score
+        """
+        extractor = Extractor()
+        zylon_filenames = extractor.populate_file_names(self.__zylon_parser_labels_folder)
+
+        zylon_xml_trees = extractor.read_resume_labels(self.__zylon_parser_labels_folder, zylon_filenames)
+        true_xml_trees = extractor.read_resume_labels(self.__dataset_raw_folder, zylon_filenames)
+
+        true_edu_insts = [extractor.get_edu_institutions(xml_tree) for xml_tree in true_xml_trees]
+        true_edu_majors = [extractor.get_edu_majors(xml_tree) for xml_tree in true_xml_trees]
+        true_emp_names = [extractor.get_company_names(xml_tree) for xml_tree in true_xml_trees]
+        true_emp_jtitles = [extractor.get_job_titles(xml_tree) for xml_tree in true_xml_trees]
+
+        zylon_edu_insts = [extractor.get_edu_institutions_zy(xml_tree) for xml_tree in zylon_xml_trees]
+        zylon_edu_majors = [extractor.get_edu_majors_zy(xml_tree) for xml_tree in zylon_xml_trees]
+        zylon_emp_names = [extractor.get_company_names_zy(xml_tree) for xml_tree in zylon_xml_trees]
+        zylon_emp_jtitles = [extractor.get_job_titles_zy(xml_tree) for xml_tree in zylon_xml_trees]
+
+        tokeniser = Tokeniser()
+        true_edu_insts = tokeniser.docs_tolower(tokeniser.tokenise_doclines_to_words(true_edu_insts))
+        true_edu_majors = tokeniser.docs_tolower(tokeniser.tokenise_doclines_to_words(true_edu_majors))
+        true_emp_names = tokeniser.docs_tolower(tokeniser.tokenise_doclines_to_words(true_emp_names))
+        true_emp_jtitles = tokeniser.docs_tolower(tokeniser.tokenise_doclines_to_words(true_emp_jtitles))
+
+        zylon_edu_insts = tokeniser.docs_tolower(tokeniser.tokenise_doclines_to_words(zylon_edu_insts))
+        zylon_edu_majors = tokeniser.docs_tolower(tokeniser.tokenise_doclines_to_words(zylon_edu_majors))
+        zylon_emp_names = tokeniser.docs_tolower(tokeniser.tokenise_doclines_to_words(zylon_emp_names))
+        zylon_emp_jtitles = tokeniser.docs_tolower(tokeniser.tokenise_doclines_to_words(zylon_emp_jtitles))
+
+        edu_insts_match_score = self.score_matches(zylon_edu_insts, true_edu_insts)
+        edu_majors_match_score = self.score_matches(zylon_edu_majors, true_edu_majors)
+        emp_names_match_score = self.score_matches(zylon_emp_names, true_emp_names)
+        emp_jtitles_match_score = self.score_matches(zylon_emp_jtitles, true_emp_jtitles)
+
+        return edu_insts_match_score, edu_majors_match_score, emp_names_match_score, emp_jtitles_match_score
+
+    def score_matches(self, obtained_list, true_list):
+        """
+        parameters:  obtained_list - is the predicted or obtained entity list for each document 
+        parameters:  true_list - is the true or correct list of entities for each document
+
+        A point is awarded for each entity in the obtained list that occurs in
+        the true list for each document.
+
+        return: number of entities matched correctly/total entities in true list
+        """
+        matches = [True for idx, doc in enumerate(obtained_list) for entity in doc for true_entity in true_list[idx] if true_entity == entity]
+        total_score = [True for doc in true_list for entity in doc]
+        return len(matches)/len(total_score)
+

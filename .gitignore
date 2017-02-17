@@ -122,3 +122,6 @@ playground/*
 
 # raw data files
 dataset_raw_data/*
+
+# zylon parser xml output
+zylon_parser_xml/*
