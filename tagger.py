@@ -44,7 +44,9 @@ class Tagger:
         content_flat_list_len = len(content_flat_list)
 
         label_str = label_str.lower() #lowercase for comparison
-        label_str = word_tokenize(label_str)
+        rtokenizer = RegexpTokenizer(r'\w+')
+        label_str = rtokenizer.tokenize(label_str)
+        #label_str = word_tokenize(label_str)
         label_str = [word for word in label_str if word not in stopwords.words('english')]
         label_str_len = len(label_str)
 

@@ -1,11 +1,10 @@
-#from nltk.tokenize import RegexpTokenizer
+from nltk.tokenize import RegexpTokenizer
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 import spacy
 from spacy import en
 
 from logger import Logger
-import pdb
 
 # Class tokenises by words and lines
 class Tokeniser():
@@ -27,8 +26,10 @@ class Tokeniser():
         tokenised_resumes = []
         for doc_idx, doc in enumerate(docs):
             tokenised_doc_lines = []
+            rtokenizer = RegexpTokenizer(r'\w+')
             for line_idx, line in enumerate(doc):
-                tokens = word_tokenize(line)
+
+                tokens = rtokenizer.tokenize(line)
                 if tokens != []: # consider using spaces as features
                     filtered_words = [token for token in tokens if token.lower() not in en.STOP_WORDS]
                     tokenised_doc_lines.append(filtered_words)
