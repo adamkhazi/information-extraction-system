@@ -6,6 +6,7 @@ import math
 from random import shuffle
 
 from logger import Logger
+import pdb
 
 class Dataset():
     # saves and read annotated files to this folder
@@ -60,7 +61,7 @@ class Dataset():
                 break
         self.resume_content = dataset_docs
         self.__logger.println("read %s files from: " % len(self.resume_content) + self.__dataset_folder)
-        #self.resume_content = self.shuffle_data(self.resume_content)
+        self.resume_content = self.shuffle_data(self.resume_content)
         return self.resume_content
 
     def read_error(self, line):
@@ -128,3 +129,24 @@ class Dataset():
             for line in doc:
                 lines.append(line)
         return lines
+
+    def filter_for_filled_tags(self, data):
+        to_delete_idx = []
+        for doc_idx, doc in enumerate(data):
+            to_delete_idx.append([])
+            for line_idx, line in enumerate(doc):
+                delete_idx = True
+                for token_idx, token in enumerate(line):
+                    if token[3] != "O": 
+                        delete_idx &= False 
+                if delete_idx:
+                    to_delete_idx[doc_idx].append(line_idx)
+
+        #pdb.set_trace()
+        for doc_idx, doc in enumerate(to_delete_idx):
+            delete_count = 0
+            for idx, del_line_idx in enumerate(doc):
+                del data[doc_idx][del_line_idx-delete_count]
+                delete_count += 1
+
+        return data
