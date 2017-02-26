@@ -67,38 +67,38 @@ class Extractor:
     def get_edu_majors(self, label_set):
         edu_major_list = label_set.findall("Education/edu_major")
         edu_major_list = [edu_major.text for edu_major in edu_major_list]
-        edu_major_list = [self.replace_dash(edu_major) for edu_major in edu_major_list]
+        edu_major_list = [self.replace_dash(edu_major) for edu_major in edu_major_list if edu_major is not None]
         if not edu_major_list:
             return []
         else:
-            return [html.unescape(major) for major in edu_major_list if major is not self.__empty_str]
+            return [html.unescape(major) for major in edu_major_list if major is not self.__empty_str and major is not None]
 
     def get_edu_institutions(self, label_set):
         edu_inst_list = label_set.findall("Education/edu_inst_name")
         edu_inst_list = [edu_inst.text for edu_inst in edu_inst_list]
-        edu_inst_list = [self.replace_dash(edu_inst) for edu_inst in edu_inst_list]
+        edu_inst_list = [self.replace_dash(edu_inst) for edu_inst in edu_inst_list if edu_inst is not None]
         if not edu_inst_list:
             return []
         else:
-            return [html.unescape(inst) for inst in edu_inst_list if inst is not self.__empty_str]
+            return [html.unescape(inst) for inst in edu_inst_list if inst is not self.__empty_str and inst is not None]
 
     def get_company_names(self, label_set):
         company_list = label_set.findall("Jobs/job_company_name")
         company_list = [company.text for company in company_list]
-        company_list = [self.replace_dash(company) for company in company_list]
+        company_list = [self.replace_dash(company) for company in company_list if company is not None]
         if not company_list:
             return []
         else:
-            return [html.unescape(company) for company in company_list if company is not self.__empty_str]
+            return [html.unescape(company) for company in company_list if company is not self.__empty_str and company is not None]
 
     def get_job_titles(self, label_set):
         job_list = label_set.findall("Jobs/job_position")
         job_list = [job.text for job in job_list]
-        job_list = [self.replace_dash(job) for job in job_list]
+        job_list = [self.replace_dash(job) for job in job_list if job is not None]
         if not job_list:
             return []
         else:
-            return [html.unescape(j_title) for j_title in job_list if j_title is not self.__empty_str]
+            return [html.unescape(j_title) for j_title in job_list if j_title is not self.__empty_str and j_title is not None]
 
     def get_dataset_folder(self):
         return self.__dataset_raw_data_folder
@@ -144,7 +144,7 @@ class Extractor:
 
         delete_count = 0
         for idx in remove_files_idxs:
-            self.logger.println("removing unprocessed resume file at index %s named %s" % (idx-delete_count, self.dataset_filenames[idx-delete_count]))
+            self.logger.println("removing unprocessed resume file at index %s named %s" % (idx-delete_count, filenames[idx-delete_count]))
             del filenames[idx-delete_count]
             delete_count += 1
 
@@ -208,7 +208,7 @@ class Extractor:
 
         deleted_count = 0
         for idx in remove_files_idxs:
-            self.logger.println("removing empty resume file at index %s named %s" % (idx, self.dataset_filenames[idx]))
+            self.logger.println("removing empty resume file at index %s named %s" % (idx, filenames[idx]))
             del filenames[idx-deleted_count]
             del resume_content[idx-deleted_count]
             deleted_count += 1
