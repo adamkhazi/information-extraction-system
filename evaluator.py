@@ -20,10 +20,12 @@ from feature_generator import FeatureGenerator
 from tags import Tags
 from extractor import Extractor
 from tokeniser import Tokeniser
+from annotator import Annotator
 
 # Class evaluates an already trained model using ROC analysis.
 # Can also used bootstrapping to sample the dataset and train the model
 class Evaluator(Tags):
+    __ies_accuracy_test = "ies_accuracy_test"
     __zylon_parser_labels_folder = "zylon_parser_xml"
     __dataset_raw_folder = "dataset_raw_data"
     __seperator = "/"
@@ -352,3 +354,46 @@ class Evaluator(Tags):
         total_score = [True for doc in true_list for entity in doc]
         return len(matches)/len(total_score)
 
+    def get_ies_scores(self):
+        extractor = Extractor()
+        ies_filenames = extractor.populate_file_names(self.__ies_accuracy_test)
+        ies_filenames = extractor.filter_by_valid_exts(ies_filenames)
+        filenames, resume_content = extractor.read_resume_content_tika_api(ies_filenames, self.__ies_accuracy_test)
+        filenames, resume_content = extractor.remove_empty_resumes(filenames, resume_content)
+        resume_labels = extractor.read_resume_labels(self.__ies_accuracy_test, filenames)
+
+        true_edu_insts = [extractor.get_edu_institutions(xml_tree) for xml_tree in resume_labels]
+        true_edu_majors = [extractor.get_edu_majors(xml_tree) for xml_tree in resume_labels]
+        true_emp_names = [extractor.get_company_names(xml_tree) for xml_tree in resume_labels]
+        true_emp_jtitles = [extractor.get_job_titles(xml_tree) for xml_tree in resume_labels]
+
+        cs = CrfSuite()
+        cs.load_tagger()
+        annotator = Annotator()
+        annotated_resumes = [annotator.annotate_using_trained_model(self.__ies_accuracy_test +self.__seperator + filename[0] + filename[1]) for filename in filenames]
+        predicted_entity_list = [cs.tag_doc(resume) for resume in annotated_resumes]
+
+        ies_edu_insts = [extractor.get_edu_institutions_from_list(entity_list) for entity_list in predicted_entity_list]
+        ies_edu_majors = [extractor.get_edu_major_from_list(entity_list) for entity_list in predicted_entity_list]
+        ies_emp_names = [extractor.get_company_names_from_list(entity_list) for entity_list in predicted_entity_list]
+        ies_emp_jtitles = [extractor.get_company_position_from_list(entity_list) for entity_list in predicted_entity_list]
+
+        tokeniser = Tokeniser()
+        true_edu_insts = tokeniser.docs_tolower(tokeniser.tokenise_doclines_to_words(true_edu_insts))
+        true_edu_majors = tokeniser.docs_tolower(tokeniser.tokenise_doclines_to_words(true_edu_majors))
+        true_emp_names = tokeniser.docs_tolower(tokeniser.tokenise_doclines_to_words(true_emp_names))
+        true_emp_jtitles = tokeniser.docs_tolower(tokeniser.tokenise_doclines_to_words(true_emp_jtitles))
+
+        ies_edu_insts = tokeniser.docs_tolower(tokeniser.tokenise_doclines_to_words(ies_edu_insts))
+        ies_edu_majors = tokeniser.docs_tolower(tokeniser.tokenise_doclines_to_words(ies_edu_majors))
+        ies_emp_names = tokeniser.docs_tolower(tokeniser.tokenise_doclines_to_words(ies_emp_names))
+        ies_emp_jtitles = tokeniser.docs_tolower(tokeniser.tokenise_doclines_to_words(ies_emp_jtitles))
+
+        edu_insts_match_score = self.score_matches(ies_edu_insts, true_edu_insts)
+        edu_majors_match_score = self.score_matches(ies_edu_majors, true_edu_majors)
+        emp_names_match_score = self.score_matches(ies_emp_names, true_emp_names)
+        emp_jtitles_match_score = self.score_matches(ies_emp_jtitles, true_emp_jtitles)
+        print(edu_insts_match_score)
+        print(edu_majors_match_score)
+        print(emp_names_match_score)
+        print(emp_jtitles_match_score)

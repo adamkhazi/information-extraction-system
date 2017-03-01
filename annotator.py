@@ -84,5 +84,6 @@ class Annotator():
 
         prepared_doc = self.__tagger.prepare_doc(resume_content[0])
         prepared_doc = self.__tagger.pos_tag(prepared_doc)
+        prepared_doc = self.__tagger.nonlocal_ner_tag([prepared_doc])
 
-        return prepared_doc
+        return prepared_doc[0]

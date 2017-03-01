@@ -3,6 +3,7 @@ import io
 import csv
 import glob
 import math
+import copy
 from random import shuffle
 
 from logger import Logger
@@ -130,9 +131,27 @@ class Dataset():
                 lines.append(line)
         return lines
 
-    def filter_for_filled_tags(self, data):
-        to_delete_idx = []
+    def obtain_default_tags(self, number, data):
+        default_tag_lines_list = []
+        line_count = 0
         for doc_idx, doc in enumerate(data):
+            default_tag_lines_list.append([])
+            for line_idx, line in enumerate(doc):
+                add_line = True
+                for token_idx, token in enumerate(line):
+                    if token[3] != "O": 
+                        delete_idx = False 
+                if add_line:
+                    line_count += 1
+                    default_tag_lines_list[doc_idx].append(line)
+                if line_count >= number:
+                    print("returning %s lines with default tags" % line_count)
+                    return default_tag_lines_list
+
+    def filter_for_filled_tags(self, data):
+        data_copy = copy.deepcopy(data)
+        to_delete_idx = []
+        for doc_idx, doc in enumerate(data_copy):
             to_delete_idx.append([])
             for line_idx, line in enumerate(doc):
                 delete_idx = True
@@ -142,11 +161,13 @@ class Dataset():
                 if delete_idx:
                     to_delete_idx[doc_idx].append(line_idx)
 
-        #pdb.set_trace()
+        line_count = 0
         for doc_idx, doc in enumerate(to_delete_idx):
             delete_count = 0
             for idx, del_line_idx in enumerate(doc):
-                del data[doc_idx][del_line_idx-delete_count]
+                del data_copy[doc_idx][del_line_idx-delete_count]
                 delete_count += 1
+            line_count += len(data_copy[doc_idx])
 
-        return data
+        print("returning %s filled lines" % line_count)
+        return line_count, data_copy

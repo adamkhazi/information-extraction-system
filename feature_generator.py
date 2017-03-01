@@ -45,7 +45,6 @@ class FeatureGenerator():
         features['pos[-2:]'] = postag[-2:]
         features['nonlocalner'] = nonlocalnertag
 
-
         if token_idx > 0:
             word1 = line[token_idx-1][0]
             postag1 = line[token_idx-1][1]
@@ -56,7 +55,7 @@ class FeatureGenerator():
             features['posbigram-1'] = postag1 + postag
             features['pos[-3:]'] = postag1[-3:]
             features['pos[-2:]'] = postag1[-2:]
-            features['bigram-1'] = word1.lower() + '|' + word.lower()
+            features['bigram-1'] = word1.lower() + word.lower()
             features['word-1.isupper'] = word1.isupper()
             features['word-1.istitle'] = word1.istitle()
             features['word-1.isdigit'] = word1.isdigit()
@@ -65,6 +64,7 @@ class FeatureGenerator():
             features['word.freq'] = self.word_to_count(word1)
             features['word-1.idx']= float(token_idx-1)
             features['nonlocalner'] = nonlocalnertag1
+
         else:
             features['bigram-1'] = "BOL" + word.lower()
             features['BOL'] = 1.0
@@ -79,7 +79,7 @@ class FeatureGenerator():
             features['posbigram+1'] = postag + postag1
             features['pos[-3:]'] = postag1[-3:]
             features['pos[-2:]'] = postag1[-2:]
-            features['bigram+1'] = word.lower() + '|' + word1.lower()
+            features['bigram+1'] = word.lower() + word1.lower()
             features['word+1.isupper'] = word1.isupper()
             features['word+1.istitle'] = word1.istitle()
             features['word+1.isdigit'] = word1.isdigit()
@@ -96,8 +96,10 @@ class FeatureGenerator():
         if token_idx > 0 and token_idx < len(line)-1:
             word1behind = line[token_idx-1][0]
             word1ahead = line[token_idx+1][0]
-            #features['trigram-1+1'] = word1behind.lower() + word.lower() + word1ahead.lower()
+            features['trigram-1+1'] = word1behind.lower() + word.lower() + word1ahead.lower()
         """
+
+        features = self.add_we_vector(features, word)
 
         if line_idx == 0:
             features['BOD'] = 1.0
@@ -131,9 +133,18 @@ class FeatureGenerator():
         except KeyError:
             return "UNKNOWN_WORD_COUNT"
 
-    def get_we_vector(self, word):
+    def add_we_vector(self, features, word):
         try:
             for d_idx, dimension in enumerate(self.__we_model[word.lower()]):
                 features["we_dimen_"+str(d_idx)] = dimension
         except KeyError:
-            features["we_dimen_"+str(0)] = "UNKNOWN"
+            features["we_dimen_"+str(0)] = "UNKNOWN_WE"
+        return features
+
+    def similarity_between(self, word1, word2):
+        try:
+            return self.__we_model.similarity(word1.lower(), word2.lower())
+        except:
+            return "NO_SIMILARITY"
+
+

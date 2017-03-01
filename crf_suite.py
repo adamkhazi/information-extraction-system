@@ -25,14 +25,18 @@ import matplotlib.pyplot as plt
 plt.style.use('ggplot')
 import numpy as np
 import sklearn_crfsuite
+from sklearn.externals import joblib
 
 from generate_dataset import GenerateDataset
 from dataset import Dataset
 from logger import Logger
 from tags import Tags
+from we_model import WeModel
+from feature_generator import FeatureGenerator
 
 class CrfSuite(Tags):
     __seperator = "/"
+    __crf_model_name = "current_crf_model.pkl"
 
     def __init__(self):
         self.logger = Logger()
@@ -44,9 +48,15 @@ class CrfSuite(Tags):
         y_combined = list(chain.from_iterable(y))
 
         self.logger.println("crf trainer init")
-        crf = sklearn_crfsuite.CRF(algorithm='lbfgs', c1=0.01, c2=0.01, max_iterations=150, all_possible_transitions=True, verbose=True)
+        crf = sklearn_crfsuite.CRF(algorithm='lbfgs', c1=0.35, c2=0.35, max_iterations=125, all_possible_transitions=True, verbose=True)
         crf.fit(X_combined, y_combined)
         return crf
+
+    def save_model(self, model, name=__crf_model_name):
+        joblib.dump(model, name)
+
+    def load_model(self, name=__crf_model_name):
+        return joblib.load(name)
 
     def score_model(self, y_true, y_pred):
         lb = LabelBinarizer()
@@ -79,35 +89,47 @@ class CrfSuite(Tags):
         self.__trained_tagger = pycrfsuite.Tagger()
         self.__trained_tagger.open('test_NER.crfsuite')
 
-        self.w2v_model = word2vec.Word2Vec.load(self.__w2v_model_name)
+        we_model = WeModel()
+        self.w2v_model = we_model.read()
+        dataset = Dataset()
+        data = dataset.read(nr_of_files=-1)
+        word2count, word2idx = dataset.encode_dataset(data)
+        self.f_generator = FeatureGenerator(self.w2v_model, word2count, word2idx) 
 
     # doc: in format of tagged tuples
     def tag_doc(self, doc):
-        feature_input = [self.doc2features(doc_idx, d) for doc_idx, d in enumerate([doc])]
+        feature_input = self.f_generator.generate_features_docs([doc])
+        model = self.load_model()
+        """
         xseq = []
         for line_idx, line in enumerate(feature_input[0]):
             for token_idx, token in enumerate(line):
                 xseq.append(token)
+        """
 
-        predicted_tags = self.__trained_tagger.tag(xseq)
+        predicted_tags = model.predict(feature_input[0])
 
         # TODO change this to take in doc and not xseq (convert predicted tags
         # to the structure of doc)
-        return self.interpret_predicted_tags(xseq, predicted_tags)
+        return self.interpret_predicted_tags(doc, predicted_tags)
 
     def interpret_predicted_tags(self, doc, tags):
+        dataset = Dataset()
         identified_entities = []
+        doc = dataset.docs2lines(doc)
+        tags = dataset.docs2lines(tags)
         for tag_idx, tag in enumerate(tags):
-            if tag in Tags.__start_tagset:
-
+            if tag in Tags.start_tagset:
                 entity_found = ""
+                tag_idx_forward = tag_idx
                 while True:
-                    if tag_idx >= len(tags) or tags[tag_idx] == Tags.__outside_tag:
+                    if tag_idx_forward >= len(tags) or tags[tag_idx_forward] == self._Tags__outside_tag:
                         break
-                    entity_found = entity_found + " " + doc[token_idx]['word']
-                    tag_idx += 1
+                    entity_found = entity_found + " " + doc[tag_idx_forward][0]
+                    #entity_found = entity_found + " " + doc[line_idx]['word']
+                    tag_idx_forward += 1
 
-                identified_entities.append(entity_found, tags[token_idx])
+                identified_entities.append((entity_found, tags[tag_idx]))
 
         return identified_entities
 
@@ -136,8 +158,8 @@ class CrfSuite(Tags):
             verbose=True
         )
         params_space = {
-            'c1': scipy.stats.expon(scale=0.05),
-            'c2': scipy.stats.expon(scale=0.05),
+            'c1': scipy.stats.expon(scale=0.03),
+            'c2': scipy.stats.expon(scale=0.03),
         }
 
         labels = Tags.tag_list
@@ -146,7 +168,7 @@ class CrfSuite(Tags):
         f1_scorer = make_scorer(metrics.flat_f1_score, average='weighted', labels=labels)
 
         # search
-        rs = RandomizedSearchCV(crf, params_space, cv=3, verbose=1, n_jobs=3, n_iter=3, scoring=f1_scorer)
+        rs = RandomizedSearchCV(crf, params_space, cv=5, verbose=1, n_jobs=2, n_iter=50, scoring=f1_scorer)
         rs.fit(xseq, yseq)
 
         print('best params:', rs.best_params_)
@@ -193,7 +215,7 @@ class CrfSuite(Tags):
                 X_lines.append(line)
                 y_lines.append(doc_y[line_idx])
 
-        estimator = sklearn_crfsuite.CRF(algorithm='lbfgs', c1=0.1, c2=0.1, max_iterations=100, all_possible_transitions=True, verbose=True)
+        estimator = sklearn_crfsuite.CRF(algorithm='lbfgs', c1=0.001, c2=0.001, max_iterations=150, all_possible_transitions=True, verbose=True)
         custom_scorer = make_scorer(self.score_model, greater_is_better=True)
 
         #train_sizes, train_scores, test_scores = learning_curve(estimator, X_lines, y_lines, cv=cv, n_jobs=n_jobs, train_sizes=train_sizes)

@@ -15,6 +15,7 @@ from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 
 from logger import Logger
+from tags import Tags
 home = expanduser("~") + "/"
 os.environ['JAVA_HOME'] = "/usr/lib/jvm/java-8-openjdk-amd64"
 os.environ['CLASSPATH'] = home + "tika-app-1.14.jar"
@@ -22,7 +23,7 @@ os.environ['CLASSPATH'] = home + "tika-app-1.14.jar"
 
 # This class extracts content from resume files of various formats.
 # Also it extracts content from XML files and turns them into Python objects.
-class Extractor:
+class Extractor(Tags):
     __dataset_raw_data_folder = "dataset_raw_data"
     __file_path_seperator = "/"
     __empty_str = ''
@@ -37,6 +38,34 @@ class Extractor:
     def __init__(self):
         self.logger = Logger()
         self.logger.println("extractor created")
+
+    def get_edu_institutions_from_list(self, tuple_list):
+        filtered = []
+        for cur_tuple in tuple_list:
+            if cur_tuple[1].split('-', 1)[::-1][0] == self._Tags__education_institution_tag:
+                filtered.append(cur_tuple[0])
+        return filtered
+
+    def get_edu_major_from_list(self, tuple_list):
+        filtered = []
+        for cur_tuple in tuple_list:
+            if cur_tuple[1].split('-', 1)[::-1][0] == self._Tags__education_course_tag:
+                filtered.append(cur_tuple[0])
+        return filtered
+
+    def get_company_names_from_list(self, tuple_list):
+        filtered = []
+        for cur_tuple in tuple_list:
+            if cur_tuple[1].split('-', 1)[::-1][0] == self._Tags__job_company_tag:
+                filtered.append(cur_tuple[0])
+        return filtered
+
+    def get_company_position_from_list(self, tuple_list):
+        filtered = []
+        for cur_tuple in tuple_list:
+            if cur_tuple[1].split('-', 1)[::-1][0] == self._Tags__job_position_tag:
+                filtered.append(cur_tuple[0])
+        return filtered
 
     def replace_dash(self, label):
         if label.rstrip().lstrip() == "-":
@@ -127,7 +156,7 @@ class Extractor:
         return valid_filenames
 
 
-    def __read_resume_content_tika_api(self, filenames):
+    def read_resume_content_tika_api(self, filenames, folder):
         os.environ['TIKA_VERSION'] = home + "1.14"
         os.environ['TIKA_SERVER_CLASSPATH'] = home + "tika-app-1.14.jar"
 
@@ -135,7 +164,7 @@ class Extractor:
         resume_content = []
         for idx, filename in enumerate(filenames):
             self.logger.println("sending resume %s/%s to tika" % (idx+1, len(filenames)) )
-            filepath = self.__dataset_raw_data_folder + self.__file_path_seperator + filename[0] + filename[1]
+            filepath = folder + self.__file_path_seperator + filename[0] + filename[1]
             extracted_information = parser.from_file(filepath)
             try:
                 resume_content.append(extracted_information["content"])
@@ -254,7 +283,7 @@ class Extractor:
         """
         filenames = self.populate_file_names(self.__dataset_raw_data_folder, nr_of_docs)
         filenames = self.filter_by_valid_exts(filenames)
-        filenames, resume_content = self.__read_resume_content_tika_api(filenames)
+        filenames, resume_content = self.read_resume_content_tika_api(filenames, self.__dataset_raw_data_folder)
         filenames, resume_content = self.remove_empty_resumes(filenames, resume_content)
         resume_labels = self.read_resume_labels(self.__dataset_raw_data_folder, filenames)
         return resume_content, resume_labels

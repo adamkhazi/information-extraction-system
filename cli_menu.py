@@ -22,6 +22,7 @@ class CliMenu():
     __argument_evaluate = "-e"
     __argument_train_w_learning_curve = "-lc"
     __argument_evaluate_zylon = "-e_zylon"
+    __argument_accuracy_normal_ies = "-an"
 
     def __init__(self):
         self.logger = Logger()
@@ -59,6 +60,9 @@ class CliMenu():
 
         elif command_arg == self.__argument_evaluate_zylon:
             self.evaluate_zylon()
+
+        elif command_arg == self.__argument_accuracy_normal_ies:
+            self.ies_normal_accuracy_scores()
 
         else:
             print("Commands accepted:")
@@ -119,12 +123,16 @@ class CliMenu():
 
         dataset = Dataset()
         data = dataset.read(nr_of_files=nr_of_files)
+        nr_of_filled_lines, data1 = dataset.filter_for_filled_tags(data)
+        data2 = dataset.obtain_default_tags(nr_of_filled_lines*3, data)
+        data = data1 + data2
+        data = dataset.shuffle_data(data)
         train_set, test_set = dataset.split_dataset(data)
 
         we_model = WeModel()
         w2v_model = we_model.train(data) # optionally load a pretrained model here 
+        we_model.save(w2v_model)
         we_model = None
-        #we_model.save(w2v_model)
 
         word2count, word2idx = dataset.encode_dataset(train_set)
 
@@ -138,6 +146,7 @@ class CliMenu():
         f_generator = None
 
         model = cs.train_model(train_features, y_train)
+        cs.save_model(model)
         y_train_pred = cs.test_model(model, train_features)
         y_test_pred = cs.test_model(model, test_features)
 
@@ -190,8 +199,8 @@ class CliMenu():
         train_set, test_set = dataset.split_dataset(data)
 
         we_model = WeModel()
-        #w2v_model = we_model.train(train_set) # optionally load a pretrained model here 
-        w2v_model = we_model.load_pretrained_model() # optionally load a pretrained model here 
+        w2v_model = we_model.train(data) # optionally load a pretrained model here 
+        #w2v_model = we_model.load_pretrained_model() # optionally load a pretrained model here 
         word2count, word2idx = dataset.encode_dataset(train_set)
 
         f_generator = FeatureGenerator(w2v_model, word2count, word2idx)
@@ -214,6 +223,12 @@ class CliMenu():
 
         elapsed_seconds = timeit.default_timer() - start_time
         self.logger.print_time_taken("train model operation took", elapsed_seconds)
+
+    def ies_normal_accuracy_scores(self):
+        self.logger.println("normal accuracy scores ies called")
+        evaluator = Evaluator()
+        evaluator.get_ies_scores()
+
 
 if __name__ == '__main__':
     CliMenu().perform_command()
