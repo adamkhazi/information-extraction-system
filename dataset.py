@@ -7,7 +7,6 @@ import copy
 from random import shuffle
 
 from logger import Logger
-import pdb
 
 class Dataset():
     # saves and read annotated files to this folder
