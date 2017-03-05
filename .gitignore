@@ -125,3 +125,10 @@ dataset_raw_data/*
 
 # zylon parser xml output
 zylon_parser_xml/*
+
+ies_accuracy_test/*
+
+dataset_raw_data_1/*
+
+# saved crf model pickle
+*.pkl
