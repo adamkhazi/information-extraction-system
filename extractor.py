@@ -287,8 +287,3 @@ class Extractor(Tags):
         filenames, resume_content = self.remove_empty_resumes(filenames, resume_content)
         resume_labels = self.read_resume_labels(self.__dataset_raw_data_folder, filenames)
         return resume_content, resume_labels
-
-"""
-ner_words = nltk.ne_chunk(pos_words)
-print(ner_words)
-"""
