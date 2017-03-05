@@ -1,6 +1,6 @@
 import logging
 
-class Logger:
+class Logger():
     __carriage_return = "\r"
     __new_line = "\n"
     __empty_string = ""

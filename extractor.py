@@ -4,7 +4,6 @@ import numpy
 import os
 import html
 import textract
-import pdb
 
 import xml.etree.cElementTree as ET
 from os.path import expanduser
