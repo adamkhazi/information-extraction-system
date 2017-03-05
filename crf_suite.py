@@ -9,7 +9,6 @@ import logging
 import copy
 import sklearn_crfsuite
 import scipy.stats
-import pdb
 
 from itertools import chain
 from sklearn.metrics import classification_report, confusion_matrix, f1_score
