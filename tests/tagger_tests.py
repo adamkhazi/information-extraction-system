@@ -99,6 +99,28 @@ class TaggerTests(unittest.TestCase):
 
         self.assertEqual(same_nlner_labels_returned, True)
 
+    # check IOB was applied correctly for entities found
+    def test_match_label_IOB_applied_correctly(self):
+        tagger = Tagger()
+
+        input =  [[("Brunel", "", "", ""), ("University", "", "", ""), ("test", "", "", ""), ("test", "", "", "")], [("test", "", "", ""), ("test", "", "", ""), ("Brunel", "", "", ""), ("University", "", "", "")], [("test", "", "", ""), ("test", "", "", ""), ("Brunel", "", "", ""), ("University", "", "", "")]]
+
+        input_label = "Brunel University"
+        input_match_tag = "match"
+        output = tagger.match_label(input, input_label, input_match_tag)
+        output = tagger.match_label(output, input_label, input_match_tag)
+        output = tagger.match_label(output, input_label, input_match_tag)
+        output = tagger.add_default_entity_tags(output)
+
+        correct_iob = True
+        for line in output:
+            for token_idx, token in enumerate(line):
+                if token[3].split("-", 1)[0] == "O":
+                    next_token = "EOL" if len(line) == token_idx+1 else line[token_idx+1][3].split("-", 1)[0]
+                    if next_token == "I":
+                        correct_iob = False
+        self.assertEqual(correct_iob, True)
+
 """
     ### NONLOCAL NER ###
     def test_nonlocal_ner_tag(self):
@@ -111,5 +133,4 @@ class TaggerTests(unittest.TestCase):
                 [("this", "O", "", ""), ("is", "O", "", ""), ("a", "O", "", ""), ("test", "O", "", "")]]
 
         output = tagger.nonlocal_ner_tag(input)
-        self.assertEqual(output, correct_output)
 """
