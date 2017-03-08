@@ -1,5 +1,4 @@
 import os
-import pdb
 import numpy as np
 import matplotlib.pyplot as plt
 from itertools import cycle
@@ -229,7 +228,6 @@ class Evaluator(Tags):
         print("precision %s" % np.mean(edu_inst_scores[:,0]))
         print("recall %s" % np.mean(edu_inst_scores[:,1]))
         print("f1 %s" % np.mean(edu_inst_scores[:,2]))
-
 
         emp_pos_tpr = emp_pos_tpr.mean(axis=0)
         emp_pos_fpr = emp_pos_fpr.mean(axis=0)
