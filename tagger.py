@@ -56,7 +56,6 @@ class Tagger:
             trailing_window_len = idx - (label_str_len-1)
             comparison = content_flat_list[trailing_window_len:idx+1]
             comparison = [item[0].lower() for item in comparison] # first position is token
-
             idx += 1
             if comparison == label_str:
                 # found
@@ -72,7 +71,6 @@ class Tagger:
                             current_tag = self.__begin_tag_prefix + match_tag
                         else:
                             current_tag = self.__inside_tag_prefix + match_tag
-
                         content_flat_list[matches_idx] = self.replace_ner_tag(content_flat_list[matches_idx], current_tag)
                     break
                     idx += max(1, (label_str_len-1))
