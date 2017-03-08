@@ -11,8 +11,9 @@ class Tokeniser():
     def __init__(self):
         self.__logger = Logger()
         self.__logger.println("tokeniser created")
-        self.en_nlp = spacy.load('en')
+        #self.en_nlp = spacy.load('en')
 
+    # Splits string content from résumé documents into lines based on \r and \n.
     def tokenise_docs_to_lines(self, docs):
         self.__logger.println("tokenising %s resumes by line" % len(docs))
         tokenised_docs = []
@@ -21,17 +22,16 @@ class Tokeniser():
         self.__logger.println("completed tokenising %s resumes by line" % len(docs))
         return tokenised_docs
 
+    # Tokenises multiple strings (lines) into tokens/words 
     def tokenise_doclines_to_words(self, docs):
         self.__logger.println("tokenising %s resumes by words" % len(docs))
         tokenised_resumes = []
         for doc_idx, doc in enumerate(docs):
             tokenised_doc_lines = []
-            rtokenizer = RegexpTokenizer(r'\w+')
             for line_idx, line in enumerate(doc):
-
-                tokens = rtokenizer.tokenize(line)
+                tokens = self.tokenise_str(line)
                 if tokens != []: # consider using spaces as features
-                    filtered_words = [token for token in tokens if token.lower() not in en.STOP_WORDS]
+                    filtered_words = self.remove_stop_words(tokens)
                     tokenised_doc_lines.append(filtered_words)
             tokenised_resumes.append(tokenised_doc_lines)
         self.__logger.println("completed tokenising %s resumes by words" % len(docs))
@@ -41,3 +41,11 @@ class Tokeniser():
         self.__logger.println("lower casing %s resumes by tokens" % len(docs))
         return [[[token.lower() for token in line] for line in doc] for doc in docs]
 
+    # Uses the regex tokeniser to tokenise a string by \w+ pattern
+    def tokenise_str(self, content_str):
+        rtokenizer = RegexpTokenizer(r'\w+')
+        tokens = rtokenizer.tokenize(content_str)
+        return tokens
+
+    def remove_stop_words(self, tokens):
+        return [token for token in tokens if token.lower() not in en.STOP_WORDS]

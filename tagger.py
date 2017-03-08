@@ -1,5 +1,4 @@
 import untangle
-import pdb
 import nltk
 import copy
 import os
@@ -9,9 +8,11 @@ from nltk.tokenize import RegexpTokenizer
 from nltk.tokenize import word_tokenize
 from nltk.tag import StanfordNERTagger
 from nltk.internals import find_jars_within_path
-from nltk.corpus import stopwords
+import spacy
+from spacy import en
 
 from logger import Logger
+from tokeniser import Tokeniser
 
 class Tagger:
     __outside_tag = "O"
@@ -29,6 +30,7 @@ class Tagger:
 
         # setup st tagger once so pickle file not reloaded
         self.setup_nonlocal_tagger()
+        self.__tokeniser = Tokeniser()
 
     # add tuples in place of tokens
     def prepare_doc(self, doc):
@@ -44,10 +46,9 @@ class Tagger:
         content_flat_list_len = len(content_flat_list)
 
         label_str = label_str.lower() #lowercase for comparison
-        rtokenizer = RegexpTokenizer(r'\w+')
-        label_str = rtokenizer.tokenize(label_str)
-        #label_str = word_tokenize(label_str)
-        label_str = [word for word in label_str if word not in stopwords.words('english')]
+        label_str = self.__tokeniser.tokenise_str(label_str)
+
+        label_str = self.__tokeniser.remove_stop_words(label_str)
         label_str_len = len(label_str)
 
         idx = max(0, label_str_len-1)
