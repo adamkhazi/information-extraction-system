@@ -1,5 +1,7 @@
 import gensim
 import copy
+import spacy
+import numpy
 
 from gensim.models import word2vec
 
@@ -41,3 +43,10 @@ class WeModel():
         path = self.__pre_trained_models_folder + self.__seperator + model_name
         return gensim.models.Word2Vec.load_word2vec_format(path, binary=True)
 
+    def load_spacy(self):
+        nlp = spacy.load('en')
+        return nlp
+
+    def get_spacy_vec(self, nlp, token):
+        token = nlp(token)
+        return token.vector
