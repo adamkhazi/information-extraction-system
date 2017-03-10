@@ -44,9 +44,3 @@ class ExtractorTests(unittest.TestCase):
             for job in resume_label.NewDataSet.Jobs:
                 self.assertTrue(len(job.job_position.cdata.strip()) > 0)
                 self.assertTrue(len(job.job_company_name.cdata.strip()) > 0)
-
-
-
-
-
-
