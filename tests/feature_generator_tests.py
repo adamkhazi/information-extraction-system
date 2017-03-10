@@ -22,6 +22,19 @@ class FeatureGeneratorTests(unittest.TestCase):
         input = [input]
         self.assertEqual(len(X[0]), len(input[0]))
 
+    def test_feature_tokens_same_len(self):
+        input, X, y = self.get_feature_generator_results()
+        # document list
+        input = [input]
+
+        input_token_nr = [1 for doc in input for line in doc for token in line]
+        input_token_nr = sum(input_token_nr)
+
+        X_token_nr = [1 for doc in X for line in doc for token in line]
+        X_token_nr = sum(input_token_nr)
+
+        self.assertEqual(input_token_nr, X_token_nr)
+
     def get_feature_generator_results(self):
         input =  [[("this", "", "", ""), ("is", "", "", ""), ("a", "", "", ""), ("test", "", "", "")],
                 [("this", "", "", ""), ("is", "", "", ""), ("a", "", "", ""), ("test", "", "", "")]]
