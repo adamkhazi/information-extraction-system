@@ -170,13 +170,17 @@ class Extractor(Tags):
             except KeyError:
                 remove_files_idxs.append(idx)
 
+        remove_files_idxs = set(remove_files_idxs)
+        filenames = [filename for filename_idx, filename in enumerate(filenames) if filename_idx not in remove_files_idxs]
+        """
         delete_count = 0
         for idx in remove_files_idxs:
             self.logger.println("removing unprocessed resume file at index %s named %s" % (idx-delete_count, filenames[idx-delete_count]))
             del filenames[idx-delete_count]
             delete_count += 1
+        """
 
-        self.logger.println("removed %s files from internal data structure" % delete_count)
+        self.logger.println("removed %s files from internal data structure" % len(remove_files_idxs))
         self.logger.println("completed reading content from %s resume files" % len(resume_content))
         return filenames, resume_content
 

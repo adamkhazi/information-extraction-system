@@ -130,5 +130,9 @@ ies_accuracy_test/*
 
 dataset_raw_data_1/*
 
+# manual annotation data prep
+manual_anno_processed/*
+manual_anno_data/*
+
 # saved crf model pickle
 *.pkl

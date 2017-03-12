@@ -4,6 +4,7 @@ import csv
 import glob
 import math
 import copy
+import pdb
 from random import shuffle
 
 from logger import Logger
@@ -74,7 +75,7 @@ class Dataset():
         self.__logger.println("shuffling dataset")
         shuffle(data)
         return data
-        
+
     def read_doc(self, filename):
         current_file_path = self.__dataset_folder + "/" + filename
         single_doc = []
@@ -170,3 +171,18 @@ class Dataset():
 
         print("returning %s filled lines" % line_count)
         return line_count, data_copy
+
+    def save_doc_lines(self, doc_lines, filenames, folder_name):
+        path = folder_name + "/"
+
+        pdb.set_trace()
+        for doc_idx, doc in enumerate(doc_lines):
+            doc_file = open(path + str(filenames[doc_idx][0]) + '.txt', 'w', encoding='utf-8')
+            for line_idx, line in enumerate(doc):
+                if not line:
+                    pass
+                else:
+                    doc_file.write("{}\n".format(line))
+            doc_file.close()
+
+        self.__logger.println("saved dataset to: " + path)
