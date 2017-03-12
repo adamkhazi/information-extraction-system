@@ -8,6 +8,12 @@ class APITests(unittest.TestCase):
 
     def test_api_get_length(self):
         api = API()
-        #api.run()
         app = api.get_test_app()
+
         self.assertTrue(app.get().content_length > 0)
+
+    def test_api_get_status(self):
+        api = API()
+        app = api.get_test_app()
+
+        self.assertTrue(app.get().status_code == 200)
