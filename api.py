@@ -58,3 +58,9 @@ class API():
     # show file in browser
     def uploaded_file(self, filename):
         return send_from_directory(self.__app.config['UPLOAD_FOLDER'], filename)
+
+    def get_test_app(self):
+        self.__app.add_url_rule("/", "index", self.handle_welcome)
+        self.__app.add_url_rule("/uploads/<filename>", "uploaded_file", self.uploaded_file)
+        self.__app.add_url_rule("/resume2entity", "IE", self.handle_resume_post, methods=['GET', 'POST',])
+        return self.__app.test_client()
