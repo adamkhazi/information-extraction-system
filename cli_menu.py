@@ -196,6 +196,10 @@ class CliMenu():
 
         dataset = Dataset()
         data = dataset.read(nr_of_files=arg)
+        nr_of_filled_lines, data1 = dataset.filter_for_filled_tags(data)
+        data2 = dataset.obtain_default_tags(nr_of_filled_lines*3, data)
+        data = data1 + data2
+        data = dataset.shuffle_data(data)
         train_set, test_set = dataset.split_dataset(data)
 
         we_model = WeModel()
