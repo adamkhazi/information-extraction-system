@@ -50,3 +50,14 @@ class APITests(unittest.TestCase):
         self.assertEqual(post.status_code, 406)
         self.assertTrue(len(post.data) > 0)
         self.assertEqual(post.content_type, expected_content_type)
+
+    def test_api_post_check_valid_filetypes(self):
+        api = API()
+        app = api.get_test_app()
+
+        post = app.post('/resume2entity', data={'file': (io.BytesIO(b'Test Content'), 'test.pdf')})
+        self.assertEqual(post.status_code, 200)
+        post = app.post('/resume2entity', data={'file': (io.BytesIO(b'Test Content'), 'test.doc')})
+        self.assertEqual(post.status_code, 200)
+        post = app.post('/resume2entity', data={'file': (io.BytesIO(b'Test Content'), 'test.docx')})
+        self.assertEqual(post.status_code, 200)
