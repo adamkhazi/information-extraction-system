@@ -23,19 +23,30 @@ class APITests(unittest.TestCase):
         api = API()
         app = api.get_test_app()
 
-        post = app.post('/resume2entity', data={'file': (io.BytesIO(b'everyone'), 'test.pdf')})
+        post = app.post('/resume2entity', data={'file': (io.BytesIO(b'Test Content'), 'test.pdf')})
         self.assertTrue(post.status_code == 200)
 
     def test_api_post_returns_xml(self):
         api = API()
         app = api.get_test_app()
 
-        post = app.post('/resume2entity', data={'file': (io.BytesIO(b'everyone'), 'test.pdf')})
+        post = app.post('/resume2entity', data={'file': (io.BytesIO(b'Test Content'), 'test.pdf')})
         self.assertTrue(post.content_type == "application/xml")
 
     def test_api_post_returns_data(self):
         api = API()
         app = api.get_test_app()
 
-        post = app.post('/resume2entity', data={'file': (io.BytesIO(b'everyone'), 'test.pdf')})
+        post = app.post('/resume2entity', data={'file': (io.BytesIO(b'Test Content'), 'test.pdf')})
         self.assertTrue(len(post.data) > 0)
+
+    def test_api_post_disallow_invalid_ext(self):
+        api = API()
+        app = api.get_test_app()
+        expected_content_type = 'text/html; charset=utf-8'
+
+        post = app.post('/resume2entity', data={'file': (io.BytesIO(b'Test Content'), 'test.exe')})
+
+        self.assertEqual(post.status_code, 406)
+        self.assertTrue(len(post.data) > 0)
+        self.assertEqual(post.content_type, expected_content_type)
