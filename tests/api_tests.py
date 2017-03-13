@@ -17,3 +17,6 @@ class APITests(unittest.TestCase):
         app = api.get_test_app()
 
         self.assertTrue(app.get().status_code == 200)
+
+    def test_api_post_req(self):
+        test_app.post('/resume2entity', data={'file': send_file(strIO, attachment_filename="testing.txt", as_attachment=True)})

@@ -2,6 +2,7 @@ from flask import Flask
 from flask import Response
 from flask import request, redirect, request, url_for, send_from_directory, make_response
 from flask import Flask, render_template
+import pdb
 
 import os
 
@@ -63,4 +64,5 @@ class API():
         self.__app.add_url_rule("/", "index", self.handle_welcome)
         self.__app.add_url_rule("/uploads/<filename>", "uploaded_file", self.uploaded_file)
         self.__app.add_url_rule("/resume2entity", "IE", self.handle_resume_post, methods=['GET', 'POST',])
+        self.__app.app_context()
         return self.__app.test_client()
