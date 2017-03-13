@@ -1,7 +1,7 @@
 from flask import Flask
 from flask import Response
 from flask import request, redirect, request, url_for, send_from_directory, make_response
-from flask import Flask, render_template
+from flask import Flask, render_template, abort
 import pdb
 
 import os
@@ -50,6 +50,9 @@ class API():
             response.headers['Content-Type'] = 'application/xml'
 
             return response
+
+        else:
+            return "Invalid file type, use PDF, DOC or DOCX", 406
 
     # For a given file, return whether it's an allowed type or not
     def __allowed_file(self, filename):
