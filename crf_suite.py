@@ -47,7 +47,7 @@ class CrfSuite(Tags):
         y_combined = list(chain.from_iterable(y))
 
         self.logger.println("crf trainer init")
-        crf = sklearn_crfsuite.CRF(algorithm='lbfgs', c1=0.35, c2=0.35, max_iterations=125, all_possible_transitions=True, verbose=True)
+        crf = sklearn_crfsuite.CRF(algorithm='lbfgs', c1=0.35, c2=0.35, max_iterations=125, all_possible_transitions=True, verbose=False)
         crf.fit(X_combined, y_combined)
         return crf
 
@@ -198,7 +198,7 @@ class CrfSuite(Tags):
         train_sizes=np.linspace(.1, 1.0, 5)
         n_jobs=8
         title = "Learning Curves"
-        cv = ShuffleSplit(n_splits=10, test_size=0.2, random_state=0)
+        cv = ShuffleSplit(n_splits=5, test_size=0.2, random_state=0)
         plt.figure()
         plt.title(title)
         ylim = (0.01, 1.01)
@@ -214,7 +214,7 @@ class CrfSuite(Tags):
                 X_lines.append(line)
                 y_lines.append(doc_y[line_idx])
 
-        estimator = sklearn_crfsuite.CRF(algorithm='lbfgs', c1=0.001, c2=0.001, max_iterations=150, all_possible_transitions=True, verbose=True)
+        estimator = sklearn_crfsuite.CRF(algorithm='lbfgs', c1=0.001, c2=0.001, max_iterations=110, all_possible_transitions=True, verbose=True)
         custom_scorer = make_scorer(self.score_model, greater_is_better=True)
 
         #train_sizes, train_scores, test_scores = learning_curve(estimator, X_lines, y_lines, cv=cv, n_jobs=n_jobs, train_sizes=train_sizes)
