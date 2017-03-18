@@ -3,6 +3,7 @@ import timeit
 import pdb
 
 import matplotlib.pyplot as plt
+import numpy as np
 
 from feature_generator import FeatureGenerator
 from crf_suite import CrfSuite
@@ -179,11 +180,21 @@ class CliMenu():
         self.logger.println("evaluate model called")
         evaluator = Evaluator()
         dataset = Dataset()
-        data = dataset.read(int(arg))
-        test_scores = evaluator.perform_bootstrapping(data, int(arg), 100)
+        data = dataset.read(-1)
+        nr_of_filled_lines, data1 = dataset.filter_for_filled_tags(data)
+        data2 = dataset.obtain_default_tags(nr_of_filled_lines*3, data)
+        data = data1 + data2
+        data = dataset.shuffle_data(data)
 
-        print("test scores")
-        print(test_scores)
+        emp_pos, emp_comp, edu_inst, edu_major = evaluator.perform_bootstrapping(data, len(data), 100)
+
+        #print("test scores")
+        print("saving scores to results:")
+
+        np.savetxt('results/emp_pos.txt', emp_pos)
+        np.savetxt('results/emp_comp.txt', emp_comp)
+        np.savetxt('results/edu_inst.txt', edu_inst)
+        np.savetxt('results/edu_major.txt', edu_major)
 
         elapsed_seconds = timeit.default_timer() - start_time
         self.logger.print_time_taken("train model operation took", elapsed_seconds)
