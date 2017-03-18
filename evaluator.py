@@ -145,6 +145,7 @@ class Evaluator(Tags):
         edu_inst_fpr = np.empty(shape=(0,3),dtype='float64')
 
         for x in range(0, iterations):
+            print("iteration nr %s" % x)
             sampled_train_set, oob_test_set = self.resample_data(dataset, sample_size, return_leftovers=True)
             cs = CrfSuite()
             ds = Dataset()
@@ -172,6 +173,7 @@ class Evaluator(Tags):
 
             class_indices = {cls: idx for idx, cls in enumerate(lb.classes_)}
 
+            """
             # fpr and tpr for one class
             temp_fpr, temp_tpr, _ = roc_curve(y_true_combined[:, class_indices["B-EMP-POS"]], y_pred_combined[:, class_indices["B-EMP-POS"]], pos_label=1)
             temp_fpr1, temp_tpr1, _ = roc_curve(y_true_combined[:, class_indices["I-EMP-POS"]], y_pred_combined[:, class_indices["I-EMP-POS"]], pos_label=1)
@@ -203,12 +205,17 @@ class Evaluator(Tags):
             temp_tpr = np.vstack([temp_tpr, temp_tpr1])
             edu_inst_tpr = np.vstack([edu_inst_tpr, temp_tpr.mean(axis=0)])
             edu_inst_fpr = np.vstack([edu_inst_fpr, temp_fpr.mean(axis=0)])
+            """
 
             emp_pos_scores = np.vstack([emp_pos_scores, self.entity_scorer(ds.docs2lines(y_test), y_test_pred, "EMP-POS")])
             emp_comp_scores = np.vstack([emp_comp_scores, self.entity_scorer(ds.docs2lines(y_test), y_test_pred, "EMP-COMP")])
             edu_major_scores = np.vstack([edu_major_scores, self.entity_scorer(ds.docs2lines(y_test), y_test_pred, "EDU-MAJOR")])
             edu_inst_scores = np.vstack([edu_inst_scores, self.entity_scorer(ds.docs2lines(y_test), y_test_pred, "EDU-INST")])
 
+            w2v_model = None
+            train_features = test_features = None
+
+        """
         print("EMP-POS")
         print("precision %s" % np.mean(emp_pos_scores[:,0]))
         print("recall %s" % np.mean(emp_pos_scores[:,1]))
@@ -279,8 +286,9 @@ class Evaluator(Tags):
         plt.legend(loc="lower right")
 
         plt.show()
+        """
 
-        return emp_pos_scores
+        return emp_pos_scores, emp_comp_scores, edu_inst_scores, edu_major_scores
 
     def resample_data(self, dataset, nr_samples, return_leftovers=False):
         """
