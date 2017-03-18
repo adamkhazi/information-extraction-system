@@ -136,3 +136,6 @@ manual_anno_data/*
 
 # saved crf model pickle
 *.pkl
+
+# results folder
+results/*
