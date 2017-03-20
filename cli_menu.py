@@ -24,6 +24,7 @@ class CliMenu():
     __argument_train_w_learning_curve = "-lc"
     __argument_evaluate_zylon = "-e_zylon"
     __argument_accuracy_normal_ies = "-an"
+    __argument_draw_roc_curve_saved_model = "-rsm"
 
     def __init__(self):
         self.logger = Logger()
@@ -52,6 +53,9 @@ class CliMenu():
 
         elif command_arg == self.__argument_api:
             self.run_api()
+
+        elif command_arg == self.__argument_draw_roc_curve_saved_model:
+            self.draw_roc_curve_saved_model()
 
         elif command_arg == self.__argument_evaluate:
             if len(sys.argv) > 2:
@@ -243,6 +247,39 @@ class CliMenu():
         self.logger.println("normal accuracy scores ies called")
         evaluator = Evaluator()
         evaluator.get_ies_scores()
+
+    def draw_roc_curve_saved_model(self):
+        self.logger.println("drawing roc curve from saved model")
+        start_time = timeit.default_timer()
+        cs = CrfSuite()
+        crf = cs.load_model("current_crf_model.pkl")
+
+        dataset = Dataset()
+        data = dataset.read(nr_of_files=100)
+        nr_of_filled_lines, data1 = dataset.filter_for_filled_tags(data)
+        data2 = dataset.obtain_default_tags(nr_of_filled_lines*3, data)
+        data = data1 + data2
+        data = dataset.shuffle_data(data)
+        train_set, test_set = dataset.split_dataset(data)
+
+        we_model = WeModel()
+        w2v_model = we_model.train(data) # optionally load a pretrained model here 
+        we_model.save(w2v_model)
+        we_model = None
+
+        word2count, word2idx = dataset.encode_dataset(train_set)
+
+        f_generator = FeatureGenerator(w2v_model, word2count, word2idx)
+        w2v_model = None
+        train_features = f_generator.generate_features_docs(train_set)
+        y_train = f_generator.generate_true_outcome(train_set)
+
+        test_features = f_generator.generate_features_docs(test_set)
+        y_test = f_generator.generate_true_outcome(test_set)
+        f_generator = None
+
+        evaluator = Evaluator()
+        evaluator.draw_roc_proba(crf, test_features, y_test)
 
 
 if __name__ == '__main__':

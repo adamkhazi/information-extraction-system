@@ -21,6 +21,8 @@ from extractor import Extractor
 from tokeniser import Tokeniser
 from annotator import Annotator
 
+import pdb
+
 # Class evaluates an already trained model using ROC analysis.
 # Can also used bootstrapping to sample the dataset and train the model
 class Evaluator(Tags):
@@ -403,3 +405,35 @@ class Evaluator(Tags):
         print(edu_majors_match_score)
         print(emp_names_match_score)
         print(emp_jtitles_match_score)
+
+    def draw_roc_proba(self, crf_model, test_features, y_true):
+        X_features = list(chain.from_iterable(test_features))
+        y_pred = crf_model.predict(X_features)
+
+        y_proba = crf_model.predict_marginals(X_features)
+
+
+        y_prob = [y_proba[pred_line_idx][pred_idx][pred] for pred_line_idx, pred_line in enumerate(y_pred) for pred_idx, pred in enumerate(pred_line)]
+        
+
+        dataset = Dataset()
+        lb = LabelBinarizer()
+        y_true_combined = lb.fit_transform(list(chain.from_iterable(dataset.docs2lines(y_true))))
+        #y_pred_combined = lb.transform(list(chain.from_iterable(y_pred)))
+        fpr, tpr, _ = roc_curve(y_true_combined[:, 0], y_prob)
+
+        lw =  2
+        plt.figure()
+        plt.plot(fpr, tpr, label="thing", color='deeppink', linestyle=':', linewidth=4)
+
+        colors = cycle(['aqua', 'darkorange', 'cornflowerblue'])
+
+        plt.plot([0, 1], [0, 1], 'k--', lw=lw)
+        plt.xlim([0.0, 1.0])
+        plt.ylim([0.0, 1.05])
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        plt.title('Some extension of Receiver operating characteristic to multi-class')
+        plt.legend(loc="lower right")
+        plt.show()
+
