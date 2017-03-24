@@ -1,9 +1,10 @@
 import os
 import numpy as np
+from matplotlib import rc,rcParams
 import matplotlib.pyplot as plt
 from itertools import cycle
 from sklearn import svm, datasets
-from sklearn.metrics import roc_curve, auc, f1_score, precision_score, recall_score
+from sklearn.metrics import roc_curve, auc, roc_auc_score, f1_score, precision_score, recall_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelBinarizer
 from sklearn.preprocessing import label_binarize
@@ -408,32 +409,62 @@ class Evaluator(Tags):
 
     def draw_roc_proba(self, crf_model, test_features, y_true):
         X_features = list(chain.from_iterable(test_features))
+        y_true_lines = list(chain.from_iterable(y_true))
+
+        y_probs = crf_model.predict_marginals(X_features)
         y_pred = crf_model.predict(X_features)
-
-        y_proba = crf_model.predict_marginals(X_features)
-
-
-        y_prob = [y_proba[pred_line_idx][pred_idx][pred] for pred_line_idx, pred_line in enumerate(y_pred) for pred_idx, pred in enumerate(pred_line)]
-        
 
         dataset = Dataset()
         lb = LabelBinarizer()
         y_true_combined = lb.fit_transform(list(chain.from_iterable(dataset.docs2lines(y_true))))
-        #y_pred_combined = lb.transform(list(chain.from_iterable(y_pred)))
-        fpr, tpr, _ = roc_curve(y_true_combined[:, 0], y_prob)
+
+        y_prob = [[prob_dict[k] for k in lb.classes_] for line in y_probs for prob_dict in line]
+        y_prob = np.array(y_prob)
+
+
+        fpr = dict()
+        tpr = dict()
+        roc_auc = dict()
+        for i in range(len(lb.classes_)):
+            fpr[i], tpr[i], _ = roc_curve(y_true_combined[:, i], y_prob[:, i])
+            roc_auc[i] = auc(fpr[i], tpr[i])
+        #fpr, tpr, _ = roc_curve(y_true_combined[:,0], y_prob[:,0])
+
+        print(roc_auc_score(y_true_combined[:,0], y_prob[:,0]))
+        print(roc_auc_score(y_true_combined[:,1], y_prob[:,1]))
+        print(roc_auc_score(y_true_combined[:,2], y_prob[:,2]))
+        print(roc_auc_score(y_true_combined[:,3], y_prob[:,3]))
+        print(roc_auc_score(y_true_combined[:,4], y_prob[:,4]))
+        print(roc_auc_score(y_true_combined[:,5], y_prob[:,5]))
+        print(roc_auc_score(y_true_combined[:,6], y_prob[:,6]))
+        print(roc_auc_score(y_true_combined[:,7], y_prob[:,7]))
+        print(roc_auc_score(y_true_combined[:,8], y_prob[:,8]))
 
         lw =  2
+        for class_idx in range(len(lb.classes_)):
+            plt.figure()
+            plt.plot(fpr[class_idx], tpr[class_idx], label=lb.classes_[class_idx] + ' (AUC: %s)' % roc_auc[class_idx], color='blue', linestyle='-', linewidth=2 )
+            colors = cycle(['aqua', 'darkorange', 'cornflowerblue'])
+            plt.plot([0, 1], [0, 1], 'k--', lw=lw)
+            plt.xlim([0.0, 1.0])
+            plt.ylim([0.0, 1.05])
+            plt.xlabel('False Positive Rate', fontweight='bold', fontsize=12)
+            plt.ylabel('True Positive Rate', fontweight='bold', fontsize=12)
+            plt.title('Receiver Operating Characteristic Curve - Entity %s' % (class_idx+1))
+            plt.legend(loc="lower right")
+            plt.show()
+
+        fpr["micro"], tpr["micro"], _ = roc_curve(y_true_combined.ravel(), y_prob.ravel())
+        roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
         plt.figure()
-        plt.plot(fpr, tpr, label="thing", color='deeppink', linestyle=':', linewidth=4)
-
+        plt.plot(fpr['micro'], tpr['micro'], label='AUC: %s' % roc_auc[class_idx], color='green', linestyle='-', linewidth=2 )
         colors = cycle(['aqua', 'darkorange', 'cornflowerblue'])
-
         plt.plot([0, 1], [0, 1], 'k--', lw=lw)
         plt.xlim([0.0, 1.0])
         plt.ylim([0.0, 1.05])
-        plt.xlabel('False Positive Rate')
-        plt.ylabel('True Positive Rate')
-        plt.title('Some extension of Receiver operating characteristic to multi-class')
+        plt.xlabel('False Positive Rate', fontweight='bold', fontsize=11)
+        plt.ylabel('True Positive Rate', fontweight='bold', fontsize=11)
+        plt.title('Receiver Operating Characteristic Curve - Average (Micro)')
         plt.legend(loc="lower right")
         plt.show()
 

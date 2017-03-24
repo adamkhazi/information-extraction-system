@@ -255,7 +255,7 @@ class CliMenu():
         crf = cs.load_model("current_crf_model.pkl")
 
         dataset = Dataset()
-        data = dataset.read(nr_of_files=100)
+        data = dataset.read(nr_of_files=1000)
         nr_of_filled_lines, data1 = dataset.filter_for_filled_tags(data)
         data2 = dataset.obtain_default_tags(nr_of_filled_lines*3, data)
         data = data1 + data2
@@ -263,8 +263,7 @@ class CliMenu():
         train_set, test_set = dataset.split_dataset(data)
 
         we_model = WeModel()
-        w2v_model = we_model.train(data) # optionally load a pretrained model here 
-        we_model.save(w2v_model)
+        w2v_model = we_model.read()
         we_model = None
 
         word2count, word2idx = dataset.encode_dataset(train_set)
