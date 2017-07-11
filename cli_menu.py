@@ -1,6 +1,7 @@
 import sys
 import timeit
 import pdb
+import click
 
 import matplotlib.pyplot as plt
 import numpy as np
