@@ -6,9 +6,9 @@ The project consisted of two stages namely the data annotation and entity extrac
 ## Data Annotation
 This stage transformed raw résumés and XML files which contained labels into a format which could be used to train a classifier.
 
-![alt text](https://thumbs.gfycat.com/ImmaculateBothIchthyosaurs-size_restricted.gif | width=100)
+![](https://thumbs.gfycat.com/ImmaculateBothIchthyosaurs-size_restricted.gif)
 
 ## Entity Extraction
 
-![alt text](https://thumbs.gfycat.com/LimitedNeglectedKronosaurus-size_restricted.gif)
+![](https://thumbs.gfycat.com/LimitedNeglectedKronosaurus-size_restricted.gif)
 
