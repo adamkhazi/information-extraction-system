@@ -28,7 +28,6 @@ class CliMenu():
 
     def __init__(self):
         self.logger = Logger()
-        self.logger.println("cli menu created")
 
     def perform_command(self):
         command_arg = sys.argv[1]
