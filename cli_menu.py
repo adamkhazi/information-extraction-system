@@ -1,8 +1,23 @@
+"""Information Extraction System.
+
+Usage:
+  cli.py test
+
+Options:
+  -h --help     Show this screen.
+  --version     Show version.
+  --speed=<kn>  Speed in knots [default: 10].
+  --moored      Moored (anchored) mine.
+  --drifting    Drifting mine.
+
+"""
+
 import sys
 import timeit
 
 import matplotlib.pyplot as plt
 import numpy as np
+from docopt import docopt
 
 from feature_generator import FeatureGenerator
 from crf_suite import CrfSuite
@@ -271,4 +286,7 @@ class CliMenu():
 
 
 if __name__ == '__main__':
-    CliMenu().perform_command()
+    arguments = docopt(__doc__, version='Naval Fate 2.0')
+    print(arguments)
+#if __name__ == '__main__':
+    #CliMenu().perform_command()
