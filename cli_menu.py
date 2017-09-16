@@ -1,6 +1,5 @@
 import sys
 import timeit
-import pdb
 import click
 
 import matplotlib.pyplot as plt
@@ -79,15 +78,6 @@ class CliMenu():
             print("evaluate model: -e [-b train and analyse performance using bootstrapping]|[-r perform roc analysis]")
 
     def annotate_db_data(self):
-        """
-        gd = GenerateDataset()
-        gd.pull_db_records(2, 1000)
-        gd.tokenize_text()
-        gd.pos_tag_tokens()
-        gd.ner_tag_tokens()
-        gd.nonlocal_ner_tag_tokens()
-        gd.save_tagged_tokens()
-        """
         raise NotImplementedError
 
     def annotate_data(self, nr_docs=-1):
