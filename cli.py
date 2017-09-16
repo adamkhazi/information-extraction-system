@@ -2,13 +2,11 @@
 
 Usage:
   cli.py test
+  cli.py train_model
 
 Options:
   -h --help     Show this screen.
   --version     Show version.
-  --speed=<kn>  Speed in knots [default: 10].
-  --moored      Moored (anchored) mine.
-  --drifting    Drifting mine.
 
 """
 
@@ -286,7 +284,8 @@ class CliMenu():
 
 
 if __name__ == '__main__':
-    arguments = docopt(__doc__, version='Naval Fate 2.0')
-    print(arguments)
-#if __name__ == '__main__':
-    #CliMenu().perform_command()
+    arguments = docopt(__doc__, version='IES 1.0')
+    cli_menu = CliMenu()
+    for k, v in arguments.items():
+        if arguments[k]:
+            getattr(cli_menu, k)()
